@@ -1,0 +1,41 @@
+STRICT PROTECTIVE SOURCE LICENSE (SPSL)
+
+Copyright (c) 2026 TarunyaProgrammer (https://github.com/TarunyaProgrammer)
+Project: GithubSpy (https://github.com/TarunyaProgrammer/GithubSpy)
+
+All Rights Reserved.
+
+Permission is hereby granted to any person obtaining a copy of this software and associated
+documentation files (the "Software"), to inspect, compile, and run the Software solely for
+personal, educational, and internal evaluation purposes, subject to the following strict conditions:
+
+1. MANDATORY ATTRIBUTION & CREDIT PRESERVATION:
+   All copies, substantial portions, or derivative builds of the Software MUST visibly retain
+   the original copyright notice above, the author credit to "TarunyaProgrammer", and active,
+   unaltered hyperlinks to:
+   - Author Profile: https://github.com/TarunyaProgrammer
+   - Official Repository: https://github.com/TarunyaProgrammer/GithubSpy
+   Under no circumstances may the author's name, brand identity, or repository links be removed,
+   obscured, or superseded.
+
+2. PROHIBITION OF RE-BRANDING & RE-DISTRIBUTION:
+   You may NOT redistribute, republish, sublicense, or publicly host this Software or any
+   derivative thereof under a different name, altered brand, or as an uncredited/white-label
+   product. Claiming original authorship, primary creation, or exclusive ownership of this
+   Software is strictly prohibited.
+
+3. COMMERCIAL USE RESTRICTION:
+   Commercial use, monetization, sale, inclusion in proprietary commercial suites, or offering
+   this Software as a hosted paid service is strictly forbidden without prior express written
+   permission from the copyright holder (TarunyaProgrammer).
+
+4. CONTRIBUTIONS:
+   Any modifications, bug fixes, or enhancements intended for public dissemination must be
+   contributed back via Pull Request to the official repository at:
+   https://github.com/TarunyaProgrammer/GithubSpy
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM,
+OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
