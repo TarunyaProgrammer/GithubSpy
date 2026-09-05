@@ -18,7 +18,7 @@ import {
 } from './services/github';
 import { hasPersonalToken } from './services/token';
 import type { RepoStats, UserStats, TimeFilter, RateLimitInfo } from './types';
-import { AlertCircle, RefreshCw, KeyRound, Loader2 } from 'lucide-react';
+import { AlertCircle, RefreshCw, KeyRound, Loader2, Zap } from 'lucide-react';
 
 export function App() {
   const [stats, setStats] = useState<RepoStats | null>(null);
@@ -121,6 +121,34 @@ export function App() {
           timeFilter={timeFilter}
           onTimeFilterChange={setTimeFilter}
         />
+
+        {/* Zero-Quota Warning Banner */}
+        {rateLimit && rateLimit.remaining === 0 && !tokenActive && !error && (
+          <div className="my-4 p-3.5 sm:p-4 rounded-2xl bg-[#EAA036]/15 border border-[#EAA036]/40 text-[#161514] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs animate-fade-in shadow-xs">
+            <div className="flex items-start sm:items-center gap-2.5">
+              <Zap className="w-4 h-4 text-[#9E6212] flex-shrink-0 mt-0.5 sm:mt-0" />
+              <div>
+                <p className="font-semibold text-[#9E6212]">
+                  GitHub IP Rate Limit Reached (0/60 requests remaining)
+                </p>
+                <p className="text-[11px] text-[#524E48] mt-0.5">
+                  Your public IP has used its 60 hourly unauthenticated requests.
+                  {rateLimit.resetDate && (
+                    <span> Resets automatically at {rateLimit.resetDate.toLocaleTimeString()}.</span>
+                  )}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsTokenModalOpen(true)}
+              className="px-3 py-1.5 rounded-xl bg-[#EAA036] hover:bg-[#DF9126] text-[#161514] font-semibold text-xs flex items-center gap-1.5 shadow-xs transition-all flex-shrink-0 cursor-pointer"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Unlock 5,000 Req/Hr</span>
+            </button>
+          </div>
+        )}
 
         {/* Error Banner */}
         {error && (
