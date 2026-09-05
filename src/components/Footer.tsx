@@ -482,16 +482,17 @@ export const Footer: React.FC = () => {
             <line x1="20" y1="46" x2="980" y2="46" stroke="#C5BFB5" strokeWidth="0.6" strokeDasharray="3 3" />
             <line x1="20" y1="74" x2="980" y2="74" stroke="#D1CBC1" strokeWidth="0.6" strokeDasharray="3 3" />
 
-            {/* Architectural Outline Text */}
+            {/* Architectural Outline Text - Using Brand Typographic System (Satoshi / General Sans) */}
             <text
               x="500"
-              y="66"
+              y="64"
               textAnchor="middle"
-              className="font-mono select-none"
+              className="font-sans select-none"
               style={{
-                fontSize: '66px',
+                fontFamily: "'Satoshi', 'General Sans', 'Plus Jakarta Sans', -apple-system, sans-serif",
+                fontSize: '68px',
                 fontWeight: 900,
-                letterSpacing: '0.12em',
+                letterSpacing: '0.06em',
                 fill: '#F3F0EA',
                 stroke: '#161514',
                 strokeWidth: '2.2px',
