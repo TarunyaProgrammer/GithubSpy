@@ -7,7 +7,7 @@ interface ContributorListProps {
   onSelectUser: (username: string) => void;
 }
 
-type SortBy = 'total' | 'merged' | 'open';
+type SortBy = 'total' | 'merged' | 'open' | 'commits';
 
 export const ContributorList: React.FC<ContributorListProps> = ({ contributors, onSelectUser }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,7 +31,8 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
       .sort((a, b) => {
         if (sortBy === 'merged') return b.mergedPRs - a.mergedPRs;
         if (sortBy === 'open') return b.openPRs - a.openPRs;
-        return b.totalPRs - a.totalPRs;
+        if (sortBy === 'commits') return (b.contributions || 0) - (a.contributions || 0);
+        return (b.totalPRs || b.contributions || 0) - (a.totalPRs || a.contributions || 0);
       });
   }, [contributors, searchTerm, roleFilter, sortBy]);
 
@@ -121,6 +122,7 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
               className="px-2.5 sm:px-3 py-1.5 text-xs rounded-xl bg-white border border-[#E5E0D8] text-[#161514] focus:outline-none focus:border-[#EAA036] flex-shrink-0"
             >
               <option value="total">Sort: PRs</option>
+              <option value="commits">Sort: Commits</option>
               <option value="merged">Sort: Merged</option>
               <option value="open">Sort: Open</option>
             </select>
@@ -202,16 +204,20 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
                     )}
                   </div>
 
-                  {/* PR Count Pills */}
+                  {/* PR Count & Commit Activity Pills */}
                   <div className="mt-2 grid grid-cols-3 gap-1 text-[10px] sm:text-[11px] font-mono">
-                    <div className="px-1 py-0.5 rounded-md bg-white border border-[#E5E0D8] text-[#161514] text-center truncate">
-                      <span className="font-bold">{c.totalPRs}</span> tot
+                    <div className="px-1 py-0.5 rounded-md bg-white border border-[#E5E0D8] text-[#161514] text-center truncate" title={`${c.totalPRs} Pull Requests analyzed`}>
+                      <span className="font-bold">{c.totalPRs}</span> PRs
                     </div>
-                    <div className="px-1 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 text-center truncate">
+                    <div className="px-1 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 text-center truncate" title={`${c.mergedPRs} Merged PRs`}>
                       <span className="font-bold">{c.mergedPRs}</span> mrg
                     </div>
-                    <div className="px-1 py-0.5 rounded-md bg-[#EAA036]/10 border border-[#EAA036]/25 text-[#9E6212] text-center truncate">
-                      <span className="font-bold">{c.openPRs}</span> opn
+                    <div className="px-1 py-0.5 rounded-md bg-[#EAA036]/10 border border-[#EAA036]/25 text-[#9E6212] text-center truncate" title={c.contributions ? `${c.contributions} all-time Git commits` : `${c.openPRs} Open PRs`}>
+                      {c.contributions !== undefined && c.contributions > 0 ? (
+                        <span><span className="font-bold">{c.contributions}</span> cmt</span>
+                      ) : (
+                        <span><span className="font-bold">{c.openPRs}</span> opn</span>
+                      )}
                     </div>
                   </div>
                 </div>

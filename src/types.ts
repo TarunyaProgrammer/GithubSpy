@@ -11,6 +11,7 @@ export interface ContributorStats {
   closedPRs: number;
   isMaintainer: boolean;
   authorAssociation?: string;
+  contributions?: number;
 }
 
 export interface PullRequest {
@@ -48,8 +49,9 @@ export interface RepoMetrics {
   closedCount: number;
   maintainersCount: number;
   contributorsCount: number;
+  allTimeContributorsCount?: number;
   avgMergeTimeHours: number | null;
-  intelligence: ApplicantIntelligence;
+  intelligence?: ApplicantIntelligence;
 }
 
 export interface RepoStats {

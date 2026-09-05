@@ -268,8 +268,26 @@ export async function fetchRepoStats(
   const { data: rawRepoData } = await appCache.getOrFetch(rawCacheKey, async () => {
     let maintainerLoginsArray: string[] = [];
     let prs: PullRequest[] = [];
+    let officialContributors: { login: string; avatar_url: string; contributions: number }[] = [];
 
-    // ACCELERATION: If a GitHub token is active, execute high-speed single-request GraphQL query (1 quota point)
+    // 1. Fetch official GitHub repository contributors (all-time code committers, up to 100)
+    try {
+      onProgress?.(`Accessing official contributor roster for ${fullName}...`);
+      const { data: contribData } = await fetchGitHubApi(
+        `/repos/${owner}/${repo}/contributors?per_page=100`
+      );
+      if (Array.isArray(contribData)) {
+        officialContributors = contribData.map((c: any) => ({
+          login: c.login || 'unknown',
+          avatar_url: c.avatar_url || `https://github.com/${c.login}.png`,
+          contributions: c.contributions || 0,
+        }));
+      }
+    } catch {
+      // Non-blocking fallback if repository has restricted contributor listing
+    }
+
+    // 2. ACCELERATION: If a GitHub token is active, execute high-speed single-request GraphQL query
     if (token) {
       onProgress?.('Executing single-request GraphQL accelerator (1 quota point)...');
       const gqlResult = await fetchRepoViaGraphQL(owner, repo);
@@ -285,20 +303,17 @@ export async function fetchRepoStats(
       }
     }
 
-    // FALLBACK / GUEST: If GraphQL not used (or guest user), use optimized REST with strict quota throttling
+    // 3. FALLBACK / GUEST: If GraphQL not used (or deeper history needed), fetch paginated REST
     if (prs.length === 0) {
-      // Unauthenticated guests have 60 req/hr shared by their entire IP.
-      // Fetching 1 page (100 PRs) costs ONLY 1 request and provides ample statistical sample.
-      const MAX_PAGES = token ? 3 : 1;
+      // If token is active or 'all' is requested, fetch deeper pages (up to 500-1000 PRs)
+      const MAX_PAGES = token ? 5 : timeFilter === 'all' ? 3 : 2;
       let page = 1;
       let hasMore = true;
       const detectedMaintainers = new Set<string>();
 
       while (hasMore && page <= MAX_PAGES) {
         onProgress?.(
-          token
-            ? `Interrogating PR stream (batch ${page} of ${MAX_PAGES})...`
-            : `Retrieving latest 100 pull requests (conserving 1 API quota point)...`
+          `Interrogating pull requests (batch ${page} of ${MAX_PAGES})...`
         );
 
         const { data: rawPulls } = await fetchGitHubApi(
@@ -355,28 +370,43 @@ export async function fetchRepoStats(
     return {
       maintainerLogins: maintainerLoginsArray,
       pullRequests: prs,
+      officialContributors,
     };
   });
 
-  onProgress?.('Synthesizing intelligence dossier...');
+  onProgress?.('Synthesizing verified contributor dossier...');
 
   const maintainerLogins = new Set<string>(rawRepoData.maintainerLogins);
-  // Filter cached pull requests by the selected time filter without ANY extra network requests
+  // Filter cached pull requests by the selected time filter without extra network calls
   const filteredPullRequests = rawRepoData.pullRequests.filter((pr) =>
     isAfter(parseISO(pr.created_at), filterDate)
   );
 
-  // Fallback to all available cached PRs if filterDate produces an empty set but PRs exist
   const activePRs = filteredPullRequests.length > 0 ? filteredPullRequests : rawRepoData.pullRequests;
 
-  // Map contributors
+  // Map contributors starting with ALL official GitHub commit contributors (90+ contributors)
   const contributorMap = new Map<string, ContributorStats>();
   let totalMergedDurationMinutes = 0;
   let mergedWithDatesCount = 0;
 
+  for (const c of rawRepoData.officialContributors || []) {
+    contributorMap.set(c.login.toLowerCase(), {
+      username: c.login,
+      avatarUrl: c.avatar_url || `https://github.com/${c.login}.png`,
+      totalPRs: 0,
+      mergedPRs: 0,
+      openPRs: 0,
+      closedPRs: 0,
+      isMaintainer: maintainerLogins.has(c.login),
+      contributions: c.contributions,
+    });
+  }
+
+  // Aggregate pull request statistics across active PRs
   for (const pr of activePRs) {
     const login = pr.user.login;
-    const existing = contributorMap.get(login) || {
+    const loginKey = login.toLowerCase();
+    const existing = contributorMap.get(loginKey) || {
       username: login,
       avatarUrl: pr.user.avatar_url,
       totalPRs: 0,
@@ -385,6 +415,7 @@ export async function fetchRepoStats(
       closedPRs: 0,
       isMaintainer: maintainerLogins.has(login),
       authorAssociation: pr.author_association,
+      contributions: 0,
     };
 
     existing.totalPRs++;
@@ -407,30 +438,25 @@ export async function fetchRepoStats(
       existing.isMaintainer = true;
     }
 
-    contributorMap.set(login, existing);
+    contributorMap.set(loginKey, existing);
   }
 
-  const contributors = Array.from(contributorMap.values()).sort((a, b) => b.totalPRs - a.totalPRs);
+  const contributors = Array.from(contributorMap.values()).sort(
+    (a, b) => (b.totalPRs || b.contributions || 0) - (a.totalPRs || a.contributions || 0)
+  );
 
   // Calculate metrics
   const totalPRs = activePRs.length;
-  const mergedCount = contributors.reduce((acc, c) => acc + c.mergedPRs, 0);
-  const openCount = contributors.reduce((acc, c) => acc + c.openPRs, 0);
-  const closedCount = contributors.reduce((acc, c) => acc + c.closedPRs, 0);
+  const mergedCount = activePRs.filter((p) => p.merged_at !== null).length;
+  const openCount = activePRs.filter((p) => p.state === 'open').length;
+  const closedCount = activePRs.filter((p) => p.state === 'closed' && p.merged_at === null).length;
   const maintainersCount = contributors.filter((c) => c.isMaintainer).length;
   const contributorsCount = contributors.length - maintainersCount;
+  const allTimeContributorsCount = rawRepoData.officialContributors?.length || contributors.length;
 
   const mergeRatePct = totalPRs > 0 ? Math.round((mergedCount / totalPRs) * 100) : 0;
   const avgMergeTimeHours =
     mergedWithDatesCount > 0 ? Math.round((totalMergedDurationMinutes / mergedWithDatesCount / 60) * 10) / 10 : null;
-
-  // Compute proprietary Applicant Intelligence & AFI
-  const intelligence = computeApplicantIntelligence(
-    mergeRatePct,
-    avgMergeTimeHours,
-    maintainersCount,
-    contributorsCount
-  );
 
   const metrics: RepoMetrics = {
     mergeRatePct,
@@ -440,8 +466,8 @@ export async function fetchRepoStats(
     closedCount,
     maintainersCount,
     contributorsCount,
+    allTimeContributorsCount,
     avgMergeTimeHours,
-    intelligence,
   };
 
   return {

@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/Header';
 import { SearchSection } from './components/SearchSection';
-import { TacticalBriefing } from './components/TacticalBriefing';
 import { MetricsBar } from './components/MetricsBar';
-import { RatioBars } from './components/charts/RatioBars';
-import { ActivityTimelineChart } from './components/charts/ActivityTimelineChart';
+import { CompactCharts } from './components/charts/CompactCharts';
 import { ContributorList } from './components/ContributorList';
 import { PullRequestsList } from './components/PullRequestsList';
 import { UserModal } from './components/UserModal';
@@ -195,25 +193,13 @@ export function App() {
         {/* Results Dashboard */}
         {stats && (
           <div className="space-y-3 sm:space-y-4 animate-fade-in">
-            {/* Tactical Intelligence Dossier */}
-            <TacticalBriefing
-              intelligence={stats.metrics.intelligence}
-              fullName={stats.fullName}
-            />
-
-            {/* Core Metrics Overview */}
+            {/* Core Metrics Overview with Formula Tooltips */}
             <MetricsBar metrics={stats.metrics} fullName={stats.fullName} />
 
-            {/* Visual Analytics Row: PR Status & Community Dynamics Ratio Bars */}
-            <RatioBars metrics={stats.metrics} />
+            {/* Space-Efficient Visual Analytics: Donut PR Resolution & Reviewer vs Community */}
+            <CompactCharts metrics={stats.metrics} />
 
-            {/* Visual Timeline Activity Graph */}
-            <ActivityTimelineChart
-              pullRequests={stats.recentPRs}
-              timeFilter={timeFilter}
-            />
-
-            {/* Contributor Grid & Role Filters */}
+            {/* Contributor Grid & Role Filters (All-Time Contributors) */}
             <ContributorList
               contributors={stats.contributors}
               onSelectUser={handleSelectUser}
@@ -237,7 +223,7 @@ export function App() {
               Terminal ready for reconnaissance
             </h3>
             <p className="mt-1.5 text-xs text-[#787571] max-w-sm mx-auto font-sans leading-relaxed">
-              Type any repository URL above or click a preset to access the applicant feasibility index and competitive intelligence.
+              Type any repository URL above or click a preset to inspect PR velocity, maintainer dynamics, and all-time contributors.
             </p>
           </div>
         )}
