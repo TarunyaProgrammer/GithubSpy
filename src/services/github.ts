@@ -7,7 +7,6 @@ import type {
   TimeFilter,
   RateLimitInfo,
   RepoMetrics,
-  ApplicantIntelligence,
 } from '../types';
 import { getActiveToken } from './token';
 import { appCache } from './cache';
@@ -132,120 +131,95 @@ async function fetchGitHubApi(endpoint: string, options: RequestInit = {}): Prom
 
   if (!response.ok) {
     if (response.status === 404) {
-      throw new Error('Repository not found. Please verify the owner and repository name (or token permissions for private repos).');
+      throw new Error('We could not find that project. Check the GitHub link or enter the owner and project name again.');
     }
     if (response.status === 403) {
       const remaining = response.headers.get('x-ratelimit-remaining');
       if (remaining === '0') {
-        throw new Error('GitHub API rate limit exceeded. Add a GitHub Personal Access Token in the top-right settings to unlock 5,000 requests/hour.');
+        throw new Error('GitHub’s public request limit has been reached for this connection. Add a GitHub token to keep checking projects, or wait for the limit to reset.');
       }
       const msg = await response.text();
-      throw new Error(`GitHub API permission denied: ${msg || 'Forbidden'}`);
+      throw new Error(`GitHub did not allow this request. ${msg || 'Check that the project is public or that your token has access.'}`);
     }
     if (response.status === 401) {
-      throw new Error('GitHub returned 401 Unauthorized. Your Personal Access Token might be expired or invalid.');
+      throw new Error('GitHub could not use your token. It may be expired, incorrect, or missing access to this project.');
     }
-    throw new Error(`GitHub API error (${response.status}): ${response.statusText}`);
+    throw new Error('GitHub could not load this project right now. Please try again in a moment.');
   }
 
   const data = await response.json();
   return { data, headers: response.headers };
 }
 
-/**
- * Computes the proprietary Applicant Feasibility Index (AFI) and tactical guidance.
- */
-function computeApplicantIntelligence(
-  mergeRatePct: number,
-  avgMergeHours: number | null,
-  maintainersCount: number,
-  contributorsCount: number
-): ApplicantIntelligence {
-  let score = 50;
+type OfficialContributor = { login: string; avatar_url: string; contributions: number };
 
-  // Merge rate weighting (up to +25 or -20)
-  if (mergeRatePct >= 75) score += 25;
-  else if (mergeRatePct >= 50) score += 15;
-  else if (mergeRatePct >= 30) score += 5;
-  else score -= 20;
+async function fetchOfficialContributors(owner: string, repo: string): Promise<OfficialContributor[]> {
+  try {
+    const { data } = await fetchGitHubApi(`/repos/${owner}/${repo}/contributors?per_page=100`);
+    if (!Array.isArray(data)) return [];
 
-  // Turnaround velocity weighting (up to +15 or -15)
-  let speedPercentile = 'Moderate (Top 50%)';
-  let responsiveness: ApplicantIntelligence['maintainerResponsiveness'] = 'Moderate';
-
-  if (avgMergeHours !== null) {
-    if (avgMergeHours <= 24) {
-      score += 15;
-      speedPercentile = 'Elite Turnaround (Top 5% speed)';
-      responsiveness = 'Instant';
-    } else if (avgMergeHours <= 72) {
-      score += 10;
-      speedPercentile = 'Fast Reviews (Top 20% speed)';
-      responsiveness = 'Active';
-    } else if (avgMergeHours <= 168) {
-      score += 2;
-      speedPercentile = 'Steady Pace (Top 45% speed)';
-      responsiveness = 'Moderate';
-    } else {
-      score -= 15;
-      speedPercentile = 'High Latency (Review bottlenecks)';
-      responsiveness = 'Delayed';
-    }
+    return data.map((contributor: any) => ({
+      login: contributor.login || 'unknown',
+      avatar_url: contributor.avatar_url || `https://github.com/${contributor.login}.png`,
+      contributions: contributor.contributions || 0,
+    }));
+  } catch {
+    return [];
   }
-
-  // Active maintainer density
-  if (maintainersCount >= 4) score += 10;
-  else if (maintainersCount >= 1) score += 5;
-  else score -= 10;
-
-  // Competition density
-  let competitionDensity: ApplicantIntelligence['competitionDensity'] = 'Low';
-  if (contributorsCount > 25) {
-    competitionDensity = 'Fierce';
-    score -= 5;
-  } else if (contributorsCount > 10) {
-    competitionDensity = 'Moderate';
-  } else {
-    competitionDensity = 'Low';
-    score += 5;
-  }
-
-  // Clamp 18 - 98
-  const feasibilityScore = Math.min(Math.max(score, 18), 98);
-
-  let grade: ApplicantIntelligence['grade'] = 'SELECTIVE';
-  if (feasibilityScore >= 85) grade = 'PRIME';
-  else if (feasibilityScore >= 70) grade = 'STRONG';
-  else if (feasibilityScore >= 50) grade = 'SELECTIVE';
-  else grade = 'CONGESTED';
-
-  // Formulate psychological tactical insight
-  let tacticalTakeaway = '';
-  if (grade === 'PRIME') {
-    tacticalTakeaway = `High-yield repository. Maintainers demonstrate high reception (${mergeRatePct}% acceptance) with ${responsiveness.toLowerCase()} review turnarounds. With ${contributorsCount} external contenders active, submitting a well-scoped PR carries an unusually high probability of fast merge and mentor recognition.`;
-  } else if (grade === 'STRONG') {
-    tacticalTakeaway = `Favorable applicant target. Active review rhythm and steady merge momentum. Competition density is ${competitionDensity.toLowerCase()} (${contributorsCount} contenders). Prioritize addressing tagged open issues rather than unsolicited refactors.`;
-  } else if (grade === 'SELECTIVE') {
-    tacticalTakeaway = `Selective review environment. Turnaround requires patience. To stand out among ${contributorsCount} contenders, ensure your PR includes thorough test coverage and immediate documentation updates.`;
-  } else {
-    tacticalTakeaway = `Elevated review friction. The maintainer pool is currently strained or reviewing selectively. Avoid large proposals; anchor your candidacy with minimal, non-breaking bug fixes before investing major effort.`;
-  }
-
-  return {
-    feasibilityScore,
-    grade,
-    competitionDensity,
-    competingApplicants: contributorsCount,
-    tacticalTakeaway,
-    speedPercentile,
-    maintainerResponsiveness: responsiveness,
-  };
 }
 
-/**
- * Fetch and analyze pull requests for a repository with maintainer intelligence,
- * merge velocity calculations, and the Applicant Feasibility Index.
- */
+async function fetchPullRequestsViaRest(
+  owner: string,
+  repo: string,
+  fullName: string,
+  maxPages: number,
+  onProgress?: (message: string) => void
+): Promise<{ pullRequests: PullRequest[]; maintainerLogins: string[] }> {
+  const pullRequests: PullRequest[] = [];
+  const maintainerLogins = new Set<string>();
+
+  for (let page = 1; page <= maxPages; page++) {
+    onProgress?.(`Loading recent contributions (${page} of ${maxPages})…`);
+    const { data: rawPulls } = await fetchGitHubApi(
+      `/repos/${owner}/${repo}/pulls?state=all&per_page=100&page=${page}&sort=created&direction=desc`
+    );
+
+    if (!Array.isArray(rawPulls) || rawPulls.length === 0) break;
+
+    for (const pr of rawPulls) {
+      const authorLogin = pr.user?.login || 'ghost';
+      const authorAssociation = pr.author_association || 'NONE';
+
+      if (['OWNER', 'MEMBER', 'COLLABORATOR'].includes(authorAssociation)) {
+        maintainerLogins.add(authorLogin);
+      }
+      if (pr.merged_by?.login) maintainerLogins.add(pr.merged_by.login);
+
+      pullRequests.push({
+        number: pr.number,
+        title: pr.title || `PR #${pr.number}`,
+        state: pr.state === 'open' ? 'open' : 'closed',
+        created_at: pr.created_at,
+        merged_at: pr.merged_at || null,
+        closed_at: pr.closed_at || null,
+        html_url: pr.html_url,
+        repository_url: pr.base?.repo?.html_url || `https://github.com/${fullName}`,
+        repository_name: fullName,
+        author_association: authorAssociation,
+        user: {
+          login: authorLogin,
+          avatar_url: pr.user?.avatar_url || `https://github.com/${authorLogin}.png`,
+        },
+      });
+    }
+
+    if (rawPulls.length < 100) break;
+  }
+
+  return { pullRequests, maintainerLogins: Array.from(maintainerLogins) };
+}
+
+/** Fetch public pull-request activity for a repository. */
 export async function fetchRepoStats(
   rawInput: string,
   timeFilter: TimeFilter,
@@ -254,7 +228,7 @@ export async function fetchRepoStats(
 ): Promise<RepoStats> {
   const target = parseGitHubUrl(rawInput);
   if (!target) {
-    throw new Error('Invalid GitHub repository. Enter "owner/repo" or "https://github.com/owner/repo"');
+    throw new Error('Enter a GitHub project link, such as github.com/facebook/react, or use owner/project.');
   }
 
   const { owner, repo } = target;
@@ -269,115 +243,39 @@ export async function fetchRepoStats(
   const { data: rawRepoData, isCached, timestamp } = await appCache.getOrFetch(
     rawCacheKey,
     async () => {
-    let maintainerLoginsArray: string[] = [];
-    let prs: PullRequest[] = [];
-    let officialContributors: { login: string; avatar_url: string; contributions: number }[] = [];
+    onProgress?.(`Loading activity for ${fullName}…`);
+    const contributorsPromise = fetchOfficialContributors(owner, repo);
+    const fallback = () => fetchPullRequestsViaRest(
+      owner,
+      repo,
+      fullName,
+      token ? 5 : timeFilter === 'all' ? 3 : 2,
+      onProgress
+    );
 
-    // 1. Fetch official GitHub repository contributors (all-time code committers, up to 100)
-    try {
-      onProgress?.(`Accessing official contributor roster for ${fullName}...`);
-      const { data: contribData } = await fetchGitHubApi(
-        `/repos/${owner}/${repo}/contributors?per_page=100`
-      );
-      if (Array.isArray(contribData)) {
-        officialContributors = contribData.map((c: any) => ({
-          login: c.login || 'unknown',
-          avatar_url: c.avatar_url || `https://github.com/${c.login}.png`,
-          contributions: c.contributions || 0,
-        }));
-      }
-    } catch {
-      // Non-blocking fallback if repository has restricted contributor listing
-    }
-
-    // 2. ACCELERATION: If a GitHub token is active, execute high-speed single-request GraphQL query
-    if (token) {
-      onProgress?.('Executing single-request GraphQL accelerator (1 quota point)...');
-      const gqlResult = await fetchRepoViaGraphQL(owner, repo);
-      if (gqlResult) {
-        maintainerLoginsArray = Array.from(gqlResult.maintainerLogins);
-        prs = gqlResult.pullRequests;
-        if (gqlResult.rateLimit) {
-          broadcastRateLimit({
-            ...gqlResult.rateLimit,
-            isAuthenticated: true,
-          });
-        }
-      }
-    }
-
-    // 3. FALLBACK / GUEST: If GraphQL not used (or deeper history needed), fetch paginated REST
-    if (prs.length === 0) {
-      // If token is active or 'all' is requested, fetch deeper pages (up to 500-1000 PRs)
-      const MAX_PAGES = token ? 5 : timeFilter === 'all' ? 3 : 2;
-      let page = 1;
-      let hasMore = true;
-      const detectedMaintainers = new Set<string>();
-
-      while (hasMore && page <= MAX_PAGES) {
-        onProgress?.(
-          `Interrogating pull requests (batch ${page} of ${MAX_PAGES})...`
-        );
-
-        const { data: rawPulls } = await fetchGitHubApi(
-          `/repos/${owner}/${repo}/pulls?state=all&per_page=100&page=${page}&sort=created&direction=desc`
-        );
-
-        if (!Array.isArray(rawPulls) || rawPulls.length === 0) {
-          hasMore = false;
-          break;
-        }
-
-        for (const pr of rawPulls) {
-          const authorLogin = pr.user?.login || 'ghost';
-          const authorAssociation = pr.author_association || 'NONE';
-
-          // Detect maintainers accurately from author_association & merged_by
-          const isMaintainer = ['OWNER', 'MEMBER', 'COLLABORATOR'].includes(authorAssociation);
-          if (isMaintainer) {
-            detectedMaintainers.add(authorLogin);
+    const activityPromise = token
+      ? fetchRepoViaGraphQL(owner, repo).then(async (result) => {
+          if (!result) return fallback();
+          if (result.rateLimit) {
+            broadcastRateLimit({ ...result.rateLimit, isAuthenticated: true });
           }
+          return {
+            pullRequests: result.pullRequests,
+            maintainerLogins: Array.from(result.maintainerLogins),
+          };
+        })
+      : fallback();
 
-          if (pr.merged_by?.login) {
-            detectedMaintainers.add(pr.merged_by.login);
-          }
-
-          prs.push({
-            number: pr.number,
-            title: pr.title || `PR #${pr.number}`,
-            state: pr.state === 'open' ? 'open' : 'closed',
-            created_at: pr.created_at,
-            merged_at: pr.merged_at || null,
-            closed_at: pr.closed_at || null,
-            html_url: pr.html_url,
-            repository_url: pr.base?.repo?.html_url || `https://github.com/${fullName}`,
-            repository_name: fullName,
-            author_association: authorAssociation,
-            user: {
-              login: authorLogin,
-              avatar_url: pr.user?.avatar_url || `https://github.com/${authorLogin}.png`,
-            },
-          });
-        }
-
-        if (rawPulls.length < 100) {
-          hasMore = false;
-        }
-
-        page++;
-      }
-
-      maintainerLoginsArray = Array.from(detectedMaintainers);
-    }
+    const [officialContributors, activity] = await Promise.all([contributorsPromise, activityPromise]);
 
     return {
-      maintainerLogins: maintainerLoginsArray,
-      pullRequests: prs,
+      maintainerLogins: activity.maintainerLogins,
+      pullRequests: activity.pullRequests,
       officialContributors,
     };
   });
 
-  onProgress?.('Synthesizing verified contributor dossier...');
+  onProgress?.('Putting the project overview together…');
 
   const maintainerLogins = new Set<string>(rawRepoData.maintainerLogins);
   // Filter cached pull requests by the selected time filter without extra network calls
@@ -444,9 +342,12 @@ export async function fetchRepoStats(
     contributorMap.set(loginKey, existing);
   }
 
-  const contributors = Array.from(contributorMap.values()).sort(
-    (a, b) => (b.totalPRs || b.contributions || 0) - (a.totalPRs || a.contributions || 0)
-  );
+  const contributors = Array.from(contributorMap.values()).sort((a, b) => {
+    if (b.totalPRs !== a.totalPRs) {
+      return b.totalPRs - a.totalPRs;
+    }
+    return (b.contributions || 0) - (a.contributions || 0);
+  });
 
   // Calculate metrics
   const totalPRs = activePRs.length;

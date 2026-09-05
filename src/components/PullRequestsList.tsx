@@ -24,7 +24,6 @@ export const PullRequestsList: React.FC<PullRequestsListProps> = ({ pullRequests
 
   return (
     <div className="w-full my-4 sm:my-6 bg-white rounded-3xl border border-[#E5E0D8] overflow-hidden shadow-xs">
-      {/* Accordion Header */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -37,47 +36,44 @@ export const PullRequestsList: React.FC<PullRequestsListProps> = ({ pullRequests
           </div>
           <div className="min-w-0">
             <h3 className="text-base sm:text-lg md:text-xl font-display font-bold text-[#161514] truncate">
-              Recent Pull Requests ({pullRequests.length})
+              Recent contribution attempts ({pullRequests.length})
             </h3>
             <p className="text-[11px] sm:text-xs text-[#787571] font-sans truncate">
-              Browse individual submissions, merge turnaround, and applicant links.
+              Read these before you choose an issue. They show the kind of work the project is reviewing.
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2 text-[#787571] flex-shrink-0 ml-2">
           <span className="text-xs font-mono hidden sm:inline">
-            {isOpen ? 'Collapse' : 'Expand list'}
+            {isOpen ? 'Hide list' : 'See contributions'}
           </span>
           {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </div>
       </button>
 
-      {/* Accordion Content */}
       {isOpen && (
         <div className="border-t border-[#E5E0D8] p-3.5 sm:p-6 space-y-3 sm:space-y-4">
-          {/* Quick Filter */}
           <div className="relative max-w-sm w-full">
             <Search className="w-3.5 h-3.5 text-[#8F8B83] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={filterQuery}
               onChange={(e) => setFilterQuery(e.target.value)}
-              placeholder="Filter by title, author, or #PR..."
-              aria-label="Filter pull requests"
+              placeholder="Search by title, person, or number"
+              aria-label="Search contribution attempts"
               className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-[#F7F5F0] border border-[#E5E0D8] text-[#161514] placeholder-[#8F8B83] focus:outline-none focus:border-[#EAA036] font-mono"
             />
           </div>
 
-          {/* Table Container */}
           <div className="overflow-x-auto -mx-3.5 sm:mx-0 px-3.5 sm:px-0">
             <table className="w-full text-left text-xs min-w-[500px] sm:min-w-full">
               <thead className="bg-[#F7F5F0] text-[#787571] font-mono uppercase text-[10px]">
                 <tr>
                   <th scope="col" className="px-3 py-2 rounded-l-lg whitespace-nowrap">Status</th>
-                  <th scope="col" className="px-3 py-2">Pull Request</th>
-                  <th scope="col" className="px-3 py-2 whitespace-nowrap">Author</th>
-                  <th scope="col" className="px-3 py-2 rounded-r-lg whitespace-nowrap">Created</th>
+                  <th scope="col" className="px-3 py-2">Contribution</th>
+                  <th scope="col" className="px-3 py-2 whitespace-nowrap">Opened by</th>
+                  <th scope="col" className="px-3 py-2 rounded-r-lg whitespace-nowrap">Opened</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E0D8]">
@@ -90,7 +86,6 @@ export const PullRequestsList: React.FC<PullRequestsListProps> = ({ pullRequests
                       key={`${pr.repository_name}-${pr.number}`}
                       className="hover:bg-[#F7F5F0]/80 transition-colors"
                     >
-                      {/* State Badge */}
                       <td className="px-3 py-3 whitespace-nowrap">
                         {isMerged ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
@@ -110,7 +105,6 @@ export const PullRequestsList: React.FC<PullRequestsListProps> = ({ pullRequests
                         )}
                       </td>
 
-                      {/* Title & Link */}
                       <td className="px-3 py-3 max-w-xs sm:max-w-md">
                         <a
                           href={pr.html_url}
@@ -126,7 +120,6 @@ export const PullRequestsList: React.FC<PullRequestsListProps> = ({ pullRequests
                         </span>
                       </td>
 
-                      {/* Author */}
                       <td className="px-3 py-3 whitespace-nowrap">
                         <button
                           type="button"
@@ -142,7 +135,6 @@ export const PullRequestsList: React.FC<PullRequestsListProps> = ({ pullRequests
                         </button>
                       </td>
 
-                      {/* Date */}
                       <td className="px-3 py-3 whitespace-nowrap text-[#787571] font-mono text-[10px] sm:text-[11px]">
                         {format(parseISO(pr.created_at), 'MMM d, yyyy')}
                       </td>
@@ -154,7 +146,7 @@ export const PullRequestsList: React.FC<PullRequestsListProps> = ({ pullRequests
 
             {filteredPRs.length > 150 && (
               <p className="text-center text-xs text-[#787571] py-3 font-mono">
-                Showing first 150 of {filteredPRs.length} pull requests.
+                Showing the first 150 of {filteredPRs.length} pull requests.
               </p>
             )}
           </div>

@@ -36,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
               href="https://github.com/TarunyaProgrammer/GithubSpy"
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Star GithubSpy on GitHub"
+              aria-label="Star GitHub Spy on GitHub"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#EAA036] hover:bg-[#DF9126] active:bg-[#C87E18] text-[#161514] shadow-xs transition-all group focus-visible:ring-2 focus-visible:ring-[#EAA036]"
             >
               <Star className="w-3.5 h-3.5 fill-[#161514] text-[#161514] group-hover:scale-110 transition-transform flex-shrink-0" />
@@ -49,7 +49,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 type="button"
                 onClick={() => setIsExplainerOpen(true)}
-                aria-label="View rate limit details or why credits deplete"
+                aria-label="See available GitHub checks"
                 className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-xs font-mono border transition-all cursor-pointer ${
                   isHighLimit
                     ? 'bg-[#EAA036]/10 text-[#9E6212] border-[#EAA036]/30 hover:bg-[#EAA036]/20'
@@ -57,7 +57,7 @@ export const Header: React.FC<HeaderProps> = ({
                     ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100 animate-pulse'
                     : 'bg-white text-[#423E38] border-[#E5E0D8] hover:bg-[#EFECE6]'
                 }`}
-                title="Click to view API quota breakdown, live reset countdown & why credits deplete"
+              title="See how many GitHub requests are available"
               >
                 <Zap
                   className={`w-3.5 h-3.5 flex-shrink-0 ${
@@ -70,7 +70,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <strong>{remaining !== null ? remaining.toLocaleString() : '--'}</strong>
                   <span className="hidden xs:inline">
                     {' '}
-                    left of {limit !== null ? (limit >= 1000 ? '5k' : limit) : '60'}
+                    of {limit !== null ? (limit >= 1000 ? '5k' : limit) : '60'} checks left
                   </span>
                   <span className="xs:hidden">
                     /{limit !== null ? (limit >= 1000 ? '5k' : limit) : '60'}
@@ -78,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </span>
                 {remaining !== null && remaining <= 12 && !isHighLimit && (
                   <span className="text-[10px] font-sans font-semibold px-1 rounded bg-rose-200/70 text-rose-900 hidden lg:inline">
-                    Low
+                    Running low
                   </span>
                 )}
                 <HelpCircle className="w-3 h-3 text-[#787571] hidden sm:inline flex-shrink-0 opacity-60 hover:opacity-100" />
@@ -88,7 +88,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Token setting trigger */}
             <button
               onClick={onOpenTokenModal}
-              aria-label="Configure GitHub API Personal Access Token"
+              aria-label="Add or manage a GitHub access token"
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer ${
                 hasPersonalToken
                   ? 'bg-[#EAA036]/15 text-[#9E6212] hover:bg-[#EAA036]/25 border border-[#EAA036]/35'
@@ -97,10 +97,10 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <KeyRound className="w-3.5 h-3.5 text-[#EAA036] flex-shrink-0" />
               <span className="hidden sm:inline">
-                {hasPersonalToken ? 'PAT Active' : 'API Token'}
+                {hasPersonalToken ? 'Token connected' : 'Add GitHub token'}
               </span>
               <span className="sm:hidden">
-                {hasPersonalToken ? 'PAT' : 'Token'}
+                {hasPersonalToken ? 'Connected' : 'Token'}
               </span>
               {hasPersonalToken && (
                 <span className="w-1.5 h-1.5 rounded-full bg-[#EAA036] animate-ping flex-shrink-0" />

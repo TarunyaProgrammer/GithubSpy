@@ -47,9 +47,6 @@ export function App() {
     const unsubscribe = onRateLimitUpdate((info) => {
       setRateLimit(info);
     });
-    checkCurrentRateLimit().then((initial) => {
-      if (initial) setRateLimit(initial);
-    });
     return unsubscribe;
   }, []);
 
@@ -69,7 +66,7 @@ export function App() {
       }
 
       setError(null);
-      setLoadingProgress(forceRefresh ? 'Force pulling live data from GitHub...' : 'Connecting to GitHub API...');
+      setLoadingProgress(forceRefresh ? 'Getting the latest activity from GitHub…' : 'Connecting to GitHub…');
 
       try {
         const result = await fetchRepoStats(
@@ -84,7 +81,7 @@ export function App() {
         addRecentRepo(result.fullName);
         setLoadingProgress('');
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to analyze repository');
+        setError(err instanceof Error ? err.message : 'We could not check this project. Try the link again.');
         if (!forceRefresh) setStats(null);
       } finally {
         setLoading(false);
@@ -102,7 +99,7 @@ export function App() {
         const userDetails = await fetchUserStats(username, stats, timeFilter);
         setSelectedUserStats(userDetails);
       } catch (err) {
-        setError(err instanceof Error ? err.message : `Failed to load user ${username}`);
+        setError(err instanceof Error ? err.message : `We could not load ${username}'s contribution history. Try again.`);
       } finally {
         setLoadingUser(false);
       }
@@ -145,12 +142,12 @@ export function App() {
               <Zap className="w-4 h-4 text-[#9E6212] flex-shrink-0 mt-0.5 sm:mt-0" />
               <div>
                 <p className="font-semibold text-[#9E6212]">
-                  GitHub IP Rate Limit Reached (0/60 requests remaining)
+                  You’ve reached GitHub’s public search limit
                 </p>
                 <p className="text-[11px] text-[#524E48] mt-0.5">
-                  Your public IP has used its 60 hourly unauthenticated requests.
+                  GitHub allows 60 public requests per hour from this internet connection.
                   {rateLimit.resetDate && (
-                    <span> Resets automatically at {rateLimit.resetDate.toLocaleTimeString()}.</span>
+                    <span> You can try again after {rateLimit.resetDate.toLocaleTimeString()}.</span>
                   )}
                 </p>
               </div>
@@ -161,7 +158,7 @@ export function App() {
               className="px-3 py-1.5 rounded-xl bg-[#EAA036] hover:bg-[#DF9126] text-[#161514] font-semibold text-xs flex items-center gap-1.5 shadow-xs transition-all flex-shrink-0 cursor-pointer"
             >
               <KeyRound className="w-3.5 h-3.5" />
-              <span>Unlock 5,000 Req/Hr</span>
+              <span>Add a GitHub token</span>
             </button>
           </div>
         )}
@@ -173,13 +170,13 @@ export function App() {
               <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="font-semibold">{error}</p>
-                {error.includes('rate limit') && (
+                {error.toLowerCase().includes('limit') && (
                   <button
                     type="button"
                     onClick={() => setIsTokenModalOpen(true)}
                     className="mt-2 text-xs font-semibold underline hover:text-rose-950 flex items-center gap-1 font-mono"
                   >
-                    <KeyRound className="w-3.5 h-3.5" /> Add Personal Access Token to unlock 5,000 req/hr
+                    <KeyRound className="w-3.5 h-3.5" /> Add a GitHub token to continue checking projects
                   </button>
                 )}
               </div>
@@ -200,7 +197,7 @@ export function App() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#161514]/30 backdrop-blur-xs p-4" aria-live="assertive">
             <div className="p-4 rounded-2xl bg-white border border-[#E5E0D8] shadow-2xl flex items-center gap-3 text-xs font-mono text-[#161514]">
               <Loader2 className="w-4 h-4 animate-spin text-[#EAA036] flex-shrink-0" />
-              <span>Fetching contributor dossier...</span>
+              <span>Loading contributor activity…</span>
             </div>
           </div>
         )}
@@ -242,10 +239,10 @@ export function App() {
               <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <h3 className="text-base sm:text-lg font-display font-bold text-[#161514]">
-              Terminal ready for reconnaissance
+              Start by checking a GitHub project
             </h3>
             <p className="mt-1.5 text-xs text-[#787571] max-w-sm mx-auto font-sans leading-relaxed">
-              Type any repository URL above or click a preset to inspect PR velocity, maintainer dynamics, and all-time contributors.
+              Paste a public GitHub project link above. We’ll show how contributions move through the project and who is active there.
             </p>
           </div>
         )}

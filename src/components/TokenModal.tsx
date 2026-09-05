@@ -67,13 +67,13 @@ export const TokenModal: React.FC<TokenModalProps> = ({
       setTokenInput('');
       setFeedback({
         type: 'success',
-        message: `Token verified! Authenticated as @${check.username}. 5,000 requests/hour limit & GraphQL acceleration unlocked.`,
+        message: `Connected as @${check.username}. You can now make up to 5,000 GitHub requests per hour.`,
       });
       onTokenChanged();
     } else {
       setFeedback({
         type: 'error',
-        message: check.error || 'Token test failed. Please verify your token.',
+        message: check.error || 'We could not verify that token. Check it and try again.',
       });
     }
   };
@@ -82,7 +82,7 @@ export const TokenModal: React.FC<TokenModalProps> = ({
     removePersonalToken();
     setIsSaved(false);
     setTokenInput('');
-    setFeedback({ type: 'success', message: 'Personal token removed. Operating in standard mode.' });
+    setFeedback({ type: 'success', message: 'GitHub token removed. You are back to the public request limit.' });
     onTokenChanged();
   };
 
@@ -106,10 +106,10 @@ export const TokenModal: React.FC<TokenModalProps> = ({
             </div>
             <div>
               <h3 id="token-modal-title" className="text-base sm:text-lg font-display font-bold text-[#161514]">
-                GitHub API Rate Limit & Token
+                Add a GitHub access token
               </h3>
               <p className="text-xs text-[#787571] font-sans">
-                Elevate hourly quota from 60 to 5,000 requests with GraphQL.
+                Optional: this raises your GitHub request limit from 60 to 5,000 checks per hour.
               </p>
             </div>
           </div>
@@ -125,29 +125,29 @@ export const TokenModal: React.FC<TokenModalProps> = ({
         {/* Live Authoritative Quota Breakdown */}
         <div className="p-3 sm:p-3.5 rounded-2xl bg-[#F7F5F0] border border-[#E5E0D8] space-y-2 text-xs font-mono">
           <div className="flex items-center justify-between">
-            <span className="text-[#787571]">Current Mode:</span>
+            <span className="text-[#787571]">Current access:</span>
             {isSaved ? (
               <span className="text-emerald-700 font-semibold flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                5,000 req/hr (PAT Active)
+                5,000 checks per hour
               </span>
             ) : (
               <span className="text-[#524E48] font-medium">
-                Public IP (60 req/hr limit)
+                Public access (60 checks per hour)
               </span>
             )}
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-[#787571]">Real Quota Remaining:</span>
+            <span className="text-[#787571]">Checks remaining:</span>
             <span className="font-bold text-[#161514]">
-              {remaining !== null ? `${remaining.toLocaleString()} requests remaining` : 'Calculating...'}
+              {remaining !== null ? `${remaining.toLocaleString()} remaining` : 'Checking…'}
             </span>
           </div>
 
           {resetTimeStr && (
             <div className="flex items-center justify-between text-[11px] text-[#787571]">
-              <span>Hourly Reset Time:</span>
+              <span>Limit resets at:</span>
               <span>{resetTimeStr}</span>
             </div>
           )}
@@ -159,7 +159,7 @@ export const TokenModal: React.FC<TokenModalProps> = ({
                 onClick={handleRemove}
                 className="text-rose-600 hover:text-rose-700 flex items-center gap-1 hover:underline font-medium text-xs"
               >
-                <Trash2 className="w-3.5 h-3.5" /> Remove Token
+                <Trash2 className="w-3.5 h-3.5" /> Remove token
               </button>
             </div>
           )}
@@ -169,7 +169,7 @@ export const TokenModal: React.FC<TokenModalProps> = ({
         <form onSubmit={handleSave} className="space-y-3">
           <div>
             <label htmlFor="pat-input" className="block text-xs font-medium text-[#423E38] mb-1">
-              Personal Access Token (classic or fine-grained)
+              GitHub personal access token
             </label>
             <input
               id="pat-input"
@@ -207,7 +207,7 @@ export const TokenModal: React.FC<TokenModalProps> = ({
               rel="noopener noreferrer"
               className="text-xs text-[#9E6212] hover:underline flex items-center gap-1 font-mono justify-center sm:justify-start py-1"
             >
-              <span>Generate token on GitHub</span>
+              <span>Create a token on GitHub</span>
               <ExternalLink className="w-3 h-3" />
             </a>
 
@@ -217,7 +217,7 @@ export const TokenModal: React.FC<TokenModalProps> = ({
               className="px-4 py-2 rounded-xl bg-[#EAA036] hover:bg-[#DF9126] active:bg-[#C87E18] text-[#161514] text-xs font-semibold shadow-xs transition-all disabled:opacity-45 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
             >
               {isTesting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              <span>{isTesting ? 'Verifying...' : 'Save & Verify'}</span>
+              <span>{isTesting ? 'Checking…' : 'Save and check token'}</span>
             </button>
           </div>
         </form>
@@ -227,7 +227,7 @@ export const TokenModal: React.FC<TokenModalProps> = ({
           <p className="flex items-start gap-1.5">
             <Lock className="w-3.5 h-3.5 text-[#EAA036] flex-shrink-0 mt-0.5" />
             <span>
-              <strong>100% Client-Side:</strong> Stored locally in your browser's localStorage and dispatched directly only to GitHub's official API (<code className="font-mono">api.github.com</code>).
+              <strong>Stored only in this browser:</strong> Your token is saved locally and is sent directly to GitHub when you check a project. It is never sent to a GitHub Spy server.
             </span>
           </p>
         </div>

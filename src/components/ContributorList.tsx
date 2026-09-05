@@ -29,10 +29,25 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
         return true;
       })
       .sort((a, b) => {
-        if (sortBy === 'merged') return b.mergedPRs - a.mergedPRs;
-        if (sortBy === 'open') return b.openPRs - a.openPRs;
-        if (sortBy === 'commits') return (b.contributions || 0) - (a.contributions || 0);
-        return (b.totalPRs || b.contributions || 0) - (a.totalPRs || a.contributions || 0);
+        if (sortBy === 'merged') {
+          if (b.mergedPRs !== a.mergedPRs) return b.mergedPRs - a.mergedPRs;
+          return b.totalPRs - a.totalPRs;
+        }
+        if (sortBy === 'open') {
+          if (b.openPRs !== a.openPRs) return b.openPRs - a.openPRs;
+          return b.totalPRs - a.totalPRs;
+        }
+        if (sortBy === 'commits') {
+          if ((b.contributions || 0) !== (a.contributions || 0)) {
+            return (b.contributions || 0) - (a.contributions || 0);
+          }
+          return b.totalPRs - a.totalPRs;
+        }
+        // Default: 'total' ("Most pull requests")
+        if (b.totalPRs !== a.totalPRs) {
+          return b.totalPRs - a.totalPRs;
+        }
+        return (b.contributions || 0) - (a.contributions || 0);
       });
   }, [contributors, searchTerm, roleFilter, sortBy]);
 
@@ -45,13 +60,13 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-[#E5E0D8]">
         <div>
           <h3 className="text-base sm:text-lg md:text-xl font-display font-bold text-[#161514] flex items-center gap-2 flex-wrap">
-            <span>Contributors & Applicants</span>
+            <span>People active in this project</span>
             <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-[#EFECE6] text-[#65615B]">
               {filteredContributors.length} of {contributors.length}
             </span>
           </h3>
           <p className="text-xs text-[#787571] mt-0.5 font-sans">
-            Select any contributor to inspect their complete pull request record and turnaround history.
+            Open a profile to see the pull requests we found for that person in this project.
           </p>
         </div>
 
@@ -64,8 +79,8 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search user..."
-              aria-label="Filter contributors by username"
+              placeholder="Search a person"
+              aria-label="Search people by GitHub username"
               className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-[#F7F5F0] border border-[#E5E0D8] text-[#161514] placeholder-[#8F8B83] focus:outline-none focus:border-[#EAA036] font-mono"
             />
           </div>
@@ -73,7 +88,7 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
           <div className="flex items-center gap-2 justify-between sm:justify-start">
             {/* Role Filter Tabs */}
             <div className="overflow-x-auto no-scrollbar py-0.5 max-w-full">
-              <div className="flex items-center gap-0.5 p-1 rounded-xl bg-[#EFECE6] border border-[#E5E0D8] text-xs w-max" role="tablist" aria-label="Role Filter">
+              <div className="flex items-center gap-0.5 p-1 rounded-xl bg-[#EFECE6] border border-[#E5E0D8] text-xs w-max" role="tablist" aria-label="Filter people by role">
                 <button
                   role="tab"
                   aria-selected={roleFilter === 'all'}
@@ -95,9 +110,9 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
                       ? 'bg-white text-[#161514] shadow-xs font-semibold'
                       : 'text-[#65615B] hover:text-[#161514]'
                   }`}
-                  title="Isolate community applicants"
+                  title="Show people contributing from the wider community"
                 >
-                  Applicants ({contributorOnlyCount})
+                  Community ({contributorOnlyCount})
                 </button>
                 <button
                   role="tab"
@@ -121,10 +136,10 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
               aria-label="Sort contributors"
               className="px-2.5 sm:px-3 py-1.5 text-xs rounded-xl bg-white border border-[#E5E0D8] text-[#161514] focus:outline-none focus:border-[#EAA036] flex-shrink-0"
             >
-              <option value="total">Sort: PRs</option>
-              <option value="commits">Sort: Commits</option>
-              <option value="merged">Sort: Merged</option>
-              <option value="open">Sort: Open</option>
+              <option value="total">Most pull requests</option>
+              <option value="commits">Most commits</option>
+              <option value="merged">Most merged</option>
+              <option value="open">Most still open</option>
             </select>
           </div>
         </div>
@@ -133,7 +148,7 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
       {/* Contributor Grid */}
       {filteredContributors.length === 0 ? (
         <div className="py-12 text-center text-[#787571] text-xs">
-          No contributors match the current filter or search criteria.
+          No people match that search. Try a different name or filter.
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 pt-4" role="list">
@@ -142,7 +157,7 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
               key={c.username}
               role="button"
               tabIndex={0}
-              aria-label={`View dossier for ${c.username}, ${c.isMaintainer ? 'Maintainer' : 'Contributor'}, ${c.totalPRs} PRs`}
+              aria-label={`View contribution activity for ${c.username}, ${c.isMaintainer ? 'Maintainer' : 'Community contributor'}, ${c.totalPRs} pull requests`}
               onClick={() => onSelectUser(c.username)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -164,7 +179,7 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
                   {c.isMaintainer && (
                     <div
                       className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#EAA036] text-[#161514] flex items-center justify-center ring-2 ring-white"
-                      title="Verified Maintainer"
+                      title="Maintainer"
                     >
                       <Shield className="w-2.5 h-2.5 fill-[#161514]" />
                     </div>
@@ -199,7 +214,7 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
                     ) : (
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#524E48] bg-white px-2 py-0.5 rounded-md border border-[#E5E0D8]">
                         <Users className="w-2.5 h-2.5" />
-                        Applicant
+                        Community contributor
                       </span>
                     )}
                   </div>
@@ -209,14 +224,14 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
                     <div className="px-1 py-0.5 rounded-md bg-white border border-[#E5E0D8] text-[#161514] text-center truncate" title={`${c.totalPRs} Pull Requests analyzed`}>
                       <span className="font-bold">{c.totalPRs}</span> PRs
                     </div>
-                    <div className="px-1 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 text-center truncate" title={`${c.mergedPRs} Merged PRs`}>
-                      <span className="font-bold">{c.mergedPRs}</span> mrg
+                    <div className="px-1 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 text-center truncate" title={`${c.mergedPRs} merged pull requests`}>
+                      <span className="font-bold">{c.mergedPRs}</span> merged
                     </div>
-                    <div className="px-1 py-0.5 rounded-md bg-[#EAA036]/10 border border-[#EAA036]/25 text-[#9E6212] text-center truncate" title={c.contributions ? `${c.contributions} all-time Git commits` : `${c.openPRs} Open PRs`}>
+                    <div className="px-1 py-0.5 rounded-md bg-[#EAA036]/10 border border-[#EAA036]/25 text-[#9E6212] text-center truncate" title={c.contributions ? `${c.contributions} all-time Git commits` : `${c.openPRs} open pull requests`}>
                       {c.contributions !== undefined && c.contributions > 0 ? (
-                        <span><span className="font-bold">{c.contributions}</span> cmt</span>
+                        <span><span className="font-bold">{c.contributions}</span> commits</span>
                       ) : (
-                        <span><span className="font-bold">{c.openPRs}</span> opn</span>
+                        <span><span className="font-bold">{c.openPRs}</span> open</span>
                       )}
                     </div>
                   </div>

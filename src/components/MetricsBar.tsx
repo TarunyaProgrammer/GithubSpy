@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { GitPullRequest, GitMerge, Clock, Shield, Users, HelpCircle, X, RotateCw } from 'lucide-react';
+import React from 'react';
+import { GitPullRequest, GitMerge, Clock, Shield, Users, RotateCw } from 'lucide-react';
 import type { RepoMetrics } from '../types';
 
 interface MetricsBarProps {
@@ -11,44 +11,19 @@ interface MetricsBarProps {
   isRefreshing?: boolean;
 }
 
-interface TooltipData {
-  title: string;
-  formula: string;
-  explanation: string;
-  benchmark: string;
-}
+const formatReviewTime = (hours: number | null) => {
+  if (hours === null) return 'Not enough data';
+  if (hours < 1) return 'Under 1 hour';
+  if (hours < 24) return `${Math.round(hours)} hours`;
+  const days = Math.round((hours / 24) * 10) / 10;
+  return `${days} ${days === 1 ? 'day' : 'days'}`;
+};
 
-const METRIC_EXPLANATIONS: Record<string, TooltipData> = {
-  prs: {
-    title: 'Total Pull Requests Analyzed',
-    formula: 'Count of PRs created in the selected timeframe',
-    explanation: 'Represents the complete pull request stream audited for this repository, including open, merged, and closed PRs.',
-    benchmark: 'Higher PR count provides greater statistical confidence in merge velocity.',
-  },
-  acceptance: {
-    title: 'PR Acceptance (Merge Rate)',
-    formula: '(Merged Pull Requests ÷ Total Pull Requests) × 100%',
-    explanation: 'The percentage of submitted pull requests that successfully pass code review and get merged into the main codebase.',
-    benchmark: 'Rates > 75% indicate high maintainer receptivity to external applicant proposals.',
-  },
-  turnaround: {
-    title: 'Average Merge Turnaround Velocity',
-    formula: 'Σ (Merged Timestamp − Created Timestamp) ÷ Count of Merged PRs',
-    explanation: 'The true average latency between a contributor opening a PR and maintainers merging it.',
-    benchmark: '< 24 hours is exceptionally responsive; > 7 days indicates slower review cycles.',
-  },
-  maintainers: {
-    title: 'Core Maintainers & Reviewers',
-    formula: 'PR author_association ∈ [OWNER, MEMBER, COLLABORATOR] + Merged_By Actors',
-    explanation: 'Verified core project leaders with direct write, review, and merge privileges on this repository.',
-    benchmark: 'Knowing core maintainers helps you target the right mentors during GSoC.',
-  },
-  applicants: {
-    title: 'Community Contributors & Contenders',
-    formula: 'Total Active Contributors − Core Maintainers',
-    explanation: 'External developers and prospective applicants actively submitting PRs to this repository.',
-    benchmark: 'Shows your competition density and community engagement level.',
-  },
+const formatCachedAge = (timestamp?: number) => {
+  if (!timestamp) return 'just now';
+  const minutes = Math.max(Math.round((Date.now() - timestamp) / 60000), 0);
+  if (minutes < 1) return 'just now';
+  return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
 };
 
 export const MetricsBar: React.FC<MetricsBarProps> = ({
@@ -59,236 +34,77 @@ export const MetricsBar: React.FC<MetricsBarProps> = ({
   onRefresh,
   isRefreshing,
 }) => {
-  const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
-
-  const formatAvgTime = (hours: number | null) => {
-    if (hours === null) return 'N/A';
-    if (hours < 1) return '< 1 hr';
-    if (hours < 24) return `${hours} hrs`;
-    const days = Math.round((hours / 24) * 10) / 10;
-    return `${days} d`;
-  };
-
-  const formatCachedAge = (timestamp?: number) => {
-    if (!timestamp) return 'recently';
-    const diffMin = Math.max(Math.round((Date.now() - timestamp) / 60000), 0);
-    if (diffMin === 0) return 'just now';
-    if (diffMin === 1) return '1 min ago';
-    return `${diffMin} mins ago`;
-  };
-
-  const totalContributorsDisplay = metrics.allTimeContributorsCount || metrics.contributorsCount;
+  const totalContributors = metrics.allTimeContributorsCount || metrics.contributorsCount;
+  const reviewMessage = metrics.avgMergeTimeHours === null
+    ? 'There are not enough merged contributions in this period to estimate review time.'
+    : metrics.avgMergeTimeHours <= 72
+      ? 'Recent merged contributions were reviewed within a few days.'
+      : 'Recent merged contributions took more time to review, so plan for a slower response.';
 
   return (
-    <div className="w-full my-3 sm:my-4 relative">
-      {/* Target Repo Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 sm:gap-2 mb-2 sm:mb-2.5">
-        <h2 className="text-lg sm:text-xl font-display font-bold text-[#161514] flex items-center gap-2 flex-wrap">
-          <span className="text-[#787571] font-mono text-[10px] sm:text-xs uppercase px-2 py-0.5 rounded bg-white border border-[#E5E0D8]">
-            Target
-          </span>
-          <a
-            href={`https://github.com/${fullName}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-[#9E6212] hover:underline transition-colors font-mono break-all"
-          >
-            {fullName}
-          </a>
-        </h2>
-        <div className="flex items-center gap-2 text-[11px] sm:text-xs text-[#787571] font-mono flex-wrap">
-          <span>{metrics.totalPRs} pull requests analyzed</span>
-          <span>•</span>
-          <span className="text-[#161514] font-semibold">{totalContributorsDisplay} total contributors</span>
+    <section className="w-full my-4 sm:my-6" aria-labelledby="project-overview-title">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-4">
+        <div>
+          <p className="text-xs font-medium text-[#787571]">Project overview</p>
+          <h2 id="project-overview-title" className="mt-0.5 text-xl sm:text-2xl font-display font-bold tracking-tight text-[#161514] break-all">
+            <a href={`https://github.com/${fullName}`} target="_blank" rel="noopener noreferrer" className="hover:text-[#9E6212] hover:underline">
+              {fullName}
+            </a>
+          </h2>
         </div>
+        <p className="text-xs text-[#787571]">Based on {metrics.totalPRs} pull requests and {totalContributors} known contributors.</p>
       </div>
 
-      {/* Cache & Freshness Transparency Notice */}
       {isCached && (
-        <div className="mb-2.5 px-3 py-1.5 rounded-xl bg-[#F7F5F0] border border-[#E5E0D8] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[11px] font-mono text-[#787571]">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="w-2 h-2 rounded-full bg-emerald-600 flex-shrink-0" />
-            <span className="text-[#161514] font-semibold">Cached snapshot ({formatCachedAge(cachedAt)} • 10m TTL):</span>
-            <span className="text-[#65615B]">PRs submitted seconds ago will appear after the 10m cache window.</span>
-          </div>
+        <div className="mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-xl bg-[#EFECE6] px-3 py-2 text-xs text-[#524E48]">
+          <p>Showing a saved result from {formatCachedAge(cachedAt)} so repeated checks stay fast.</p>
           {onRefresh && (
-            <button
-              type="button"
-              onClick={onRefresh}
-              disabled={isRefreshing}
-              className="flex items-center gap-1 text-[#9E6212] hover:text-[#7C4A0A] font-semibold font-sans hover:underline flex-shrink-0 cursor-pointer disabled:opacity-50"
-              title="Bypass 10m cache and fetch live data directly from GitHub API"
-            >
-              <RotateCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span>{isRefreshing ? 'Fetching live...' : 'Refresh live'}</span>
+            <button type="button" onClick={onRefresh} disabled={isRefreshing} className="inline-flex items-center gap-1 font-semibold text-[#9E6212] hover:underline disabled:opacity-50">
+              <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Checking for updates…' : 'Get latest activity'}
             </button>
           )}
         </div>
       )}
 
-      {/* Grid of 5 Architectural Stat Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
-        {/* Total PRs */}
-        <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-[#E5E0D8] shadow-xs hover:border-[#EAA036] transition-all relative group">
-          <div className="flex items-center justify-between text-xs text-[#65615B] mb-1">
-            <div className="flex items-center gap-1.5 truncate">
-              <GitPullRequest className="w-3.5 h-3.5 text-[#EAA036] flex-shrink-0" />
-              <span className="truncate">Total PRs</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setActiveTooltip(activeTooltip === 'prs' ? null : 'prs')}
-              className="text-[#A8A29E] hover:text-[#161514] p-0.5 transition-colors"
-              aria-label="Explain Total PRs calculation"
-            >
-              <HelpCircle className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          <div className="text-2xl sm:text-3xl font-display font-bold text-[#161514]">
-            {metrics.totalPRs}
-          </div>
-          <div className="text-[10px] sm:text-[11px] text-[#787571] mt-1 flex gap-1.5 sm:gap-2 font-mono flex-wrap">
-            <span className="text-[#9E6212] font-medium">{metrics.openCount} open</span>
-            <span>•</span>
-            <span className="text-emerald-700 font-medium">{metrics.mergedCount} mrg</span>
-          </div>
-        </div>
-
-        {/* Merge Rate */}
-        <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-[#E5E0D8] shadow-xs hover:border-[#EAA036] transition-all relative group">
-          <div className="flex items-center justify-between text-xs text-[#65615B] mb-1">
-            <div className="flex items-center gap-1.5 truncate">
-              <GitMerge className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-              <span className="truncate">Acceptance</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setActiveTooltip(activeTooltip === 'acceptance' ? null : 'acceptance')}
-              className="text-[#A8A29E] hover:text-[#161514] p-0.5 transition-colors"
-              aria-label="Explain Acceptance rate calculation"
-            >
-              <HelpCircle className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          <div className="text-2xl sm:text-3xl font-display font-bold text-[#161514]">
-            {metrics.mergeRatePct}%
-          </div>
-          <div className="w-full bg-[#EFECE6] h-1.5 rounded-full mt-2 overflow-hidden">
-            <div
-              className="bg-[#EAA036] h-full rounded-full transition-all duration-500"
-              style={{ width: `${Math.min(metrics.mergeRatePct, 100)}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Average Merge Speed */}
-        <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-[#E5E0D8] shadow-xs hover:border-[#EAA036] transition-all relative group">
-          <div className="flex items-center justify-between text-xs text-[#65615B] mb-1">
-            <div className="flex items-center gap-1.5 truncate">
-              <Clock className="w-3.5 h-3.5 text-[#EAA036] flex-shrink-0" />
-              <span className="truncate">Turnaround</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setActiveTooltip(activeTooltip === 'turnaround' ? null : 'turnaround')}
-              className="text-[#A8A29E] hover:text-[#161514] p-0.5 transition-colors"
-              aria-label="Explain Turnaround velocity calculation"
-            >
-              <HelpCircle className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          <div className="text-2xl sm:text-3xl font-display font-bold text-[#161514]">
-            {formatAvgTime(metrics.avgMergeTimeHours)}
-          </div>
-          <div className="text-[10px] sm:text-[11px] text-[#787571] mt-1 font-mono">Avg merge time</div>
-        </div>
-
-        {/* Maintainers */}
-        <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-[#E5E0D8] shadow-xs hover:border-[#EAA036] transition-all relative group">
-          <div className="flex items-center justify-between text-xs text-[#65615B] mb-1">
-            <div className="flex items-center gap-1.5 truncate">
-              <Shield className="w-3.5 h-3.5 text-[#EAA036] flex-shrink-0" />
-              <span className="truncate">Maintainers</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setActiveTooltip(activeTooltip === 'maintainers' ? null : 'maintainers')}
-              className="text-[#A8A29E] hover:text-[#161514] p-0.5 transition-colors"
-              aria-label="Explain Maintainers calculation"
-            >
-              <HelpCircle className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          <div className="text-2xl sm:text-3xl font-display font-bold text-[#9E6212]">
-            {metrics.maintainersCount}
-          </div>
-          <div className="text-[10px] sm:text-[11px] text-[#787571] mt-1 font-mono">Active reviewers</div>
-        </div>
-
-        {/* External Contributors / Applicants */}
-        <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-[#E5E0D8] shadow-xs col-span-2 sm:col-span-2 lg:col-span-1 hover:border-[#EAA036] transition-all relative group">
-          <div className="flex items-center justify-between text-xs text-[#65615B] mb-1">
-            <div className="flex items-center gap-1.5 truncate">
-              <Users className="w-3.5 h-3.5 text-[#161514] flex-shrink-0" />
-              <span className="truncate">Contributors</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setActiveTooltip(activeTooltip === 'applicants' ? null : 'applicants')}
-              className="text-[#A8A29E] hover:text-[#161514] p-0.5 transition-colors"
-              aria-label="Explain Contributors calculation"
-            >
-              <HelpCircle className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          <div className="text-2xl sm:text-3xl font-display font-bold text-[#161514]">
-            {metrics.contributorsCount}
-          </div>
-          <div className="text-[10px] sm:text-[11px] text-[#787571] mt-1 font-mono">
-            {metrics.allTimeContributorsCount ? `${metrics.allTimeContributorsCount} all-time` : 'Community active'}
-          </div>
-        </div>
+      <div className="grid grid-cols-2 lg:grid-cols-5 border border-[#E5E0D8] rounded-2xl overflow-hidden bg-white">
+        <Metric icon={GitPullRequest} label="Recent contributions" value={metrics.totalPRs} detail={`${metrics.openCount} still open`} />
+        <Metric icon={GitMerge} label="Contributions merged" value={`${metrics.mergeRatePct}%`} detail="of the pull requests checked" tone="emerald" />
+        <Metric icon={Clock} label="Typical review time" value={formatReviewTime(metrics.avgMergeTimeHours)} detail="from opening to merging" />
+        <Metric icon={Shield} label="People reviewing" value={metrics.maintainersCount} detail="maintainers found in this activity" tone="amber" />
+        <Metric icon={Users} label="Other active people" value={metrics.contributorsCount} detail={`${totalContributors} known across the project`} />
       </div>
 
-      {/* Floating Formula & Calculation Explainer Modal */}
-      {activeTooltip && METRIC_EXPLANATIONS[activeTooltip] && (
-        <div className="mt-3 p-3.5 sm:p-4 rounded-2xl bg-white border border-[#EAA036]/50 shadow-md text-xs font-sans animate-fade-in relative">
-          <div className="flex items-center justify-between pb-2 border-b border-[#E5E0D8]">
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase bg-[#EAA036]/15 text-[#9E6212]">
-                Formula & Math
-              </span>
-              <h4 className="font-bold text-[#161514] text-xs sm:text-sm">
-                {METRIC_EXPLANATIONS[activeTooltip].title}
-              </h4>
-            </div>
-            <button
-              type="button"
-              onClick={() => setActiveTooltip(null)}
-              className="p-1 rounded text-[#787571] hover:text-[#161514]"
-              aria-label="Close formula tooltip"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          <div className="mt-2.5 space-y-1.5 text-[#524E48]">
-            <div>
-              <span className="text-[10px] font-mono uppercase text-[#787571] block">Exact Calculation:</span>
-              <code className="text-[11px] font-mono font-bold text-[#161514] bg-[#F7F5F0] px-2 py-1 rounded block mt-0.5 border border-[#E5E0D8]">
-                {METRIC_EXPLANATIONS[activeTooltip].formula}
-              </code>
-            </div>
-            <p className="text-xs leading-relaxed pt-1">
-              {METRIC_EXPLANATIONS[activeTooltip].explanation}
-            </p>
-            <p className="text-[11px] text-[#9E6212] font-medium pt-0.5">
-              Target Benchmark: {METRIC_EXPLANATIONS[activeTooltip].benchmark}
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
+      <div className="mt-3 rounded-2xl bg-[#161514] px-4 py-4 sm:px-5 text-[#F7F5F0]">
+        <p className="text-sm font-semibold">What this may mean for you</p>
+        <p className="mt-1 max-w-3xl text-xs sm:text-sm leading-relaxed text-[#D5D0C7]">
+          {metrics.mergeRatePct >= 60
+            ? 'A good share of the contributions in this period were merged. That can be a positive sign, but read recent pull requests before choosing an issue.'
+            : 'Fewer contributions were merged in this period. Look through recent pull requests to understand the project’s expectations before you invest time.'}{' '}
+          {reviewMessage}
+        </p>
+      </div>
+    </section>
   );
 };
 
+function Metric({ icon: Icon, label, value, detail, tone = 'default' }: {
+  icon: typeof GitPullRequest;
+  label: string;
+  value: string | number;
+  detail: string;
+  tone?: 'default' | 'emerald' | 'amber';
+}) {
+  const colors = { default: 'text-[#161514]', emerald: 'text-emerald-700', amber: 'text-[#9E6212]' };
+
+  return (
+    <div className="min-h-[132px] border-b border-[#E5E0D8] p-4 last:border-b-0 lg:border-b-0 lg:border-l first:border-l-0">
+      <div className="flex items-center gap-2 text-xs font-medium text-[#65615B]">
+        <Icon className={`h-4 w-4 ${colors[tone]}`} />
+        <span>{label}</span>
+      </div>
+      <p className={`mt-3 text-xl sm:text-2xl font-display font-bold tracking-tight ${colors[tone]}`}>{value}</p>
+      <p className="mt-1 text-[11px] leading-relaxed text-[#787571]">{detail}</p>
+    </div>
+  );
+}

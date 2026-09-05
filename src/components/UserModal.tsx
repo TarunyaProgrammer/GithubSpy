@@ -57,7 +57,7 @@ export const UserModal: React.FC<UserModalProps> = ({ userStats, onClose }) => {
                 ) : (
                   <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#524E48] bg-white px-2 py-0.5 rounded-full border border-[#E5E0D8] flex-shrink-0">
                     <Users className="w-3 h-3" />
-                    Applicant
+                    Community contributor
                   </span>
                 )}
               </div>
@@ -86,7 +86,7 @@ export const UserModal: React.FC<UserModalProps> = ({ userStats, onClose }) => {
         {/* Stats Strip */}
         <div className="p-3.5 sm:p-6 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 border-b border-[#E5E0D8] text-center font-mono">
           <div className="p-2.5 sm:p-3 rounded-2xl bg-[#F7F5F0] border border-[#E5E0D8]">
-            <div className="text-[11px] sm:text-xs text-[#787571]">Total PRs</div>
+            <div className="text-[11px] sm:text-xs text-[#787571]">Pull requests</div>
             <div className="text-xl sm:text-2xl font-display font-bold text-[#161514] mt-0.5">
               {totalStats.totalPRs}
             </div>
@@ -104,7 +104,7 @@ export const UserModal: React.FC<UserModalProps> = ({ userStats, onClose }) => {
             </div>
           </div>
           <div className="p-2.5 sm:p-3 rounded-2xl bg-[#F7F5F0] border border-[#E5E0D8]">
-            <div className="text-[11px] sm:text-xs text-[#65615B] font-medium">Acceptance</div>
+            <div className="text-[11px] sm:text-xs text-[#65615B] font-medium">Merged</div>
             <div className="text-xl sm:text-2xl font-display font-bold text-[#161514] mt-0.5">
               {mergeRate}%
             </div>
@@ -114,12 +114,12 @@ export const UserModal: React.FC<UserModalProps> = ({ userStats, onClose }) => {
         {/* Pull Requests in Scope */}
         <div className="p-4 sm:p-6 flex-1 overflow-y-auto space-y-2.5 sm:space-y-3">
           <h4 className="text-xs font-semibold text-[#787571] uppercase tracking-wider font-mono">
-            Submissions in Selected Scope ({pullRequests.length})
+            Pull requests in this time period ({pullRequests.length})
           </h4>
 
           {pullRequests.length === 0 ? (
             <p className="text-xs text-[#787571] py-6 text-center">
-              No pull requests recorded in the current timeframe.
+              We did not find pull requests for this person in the selected time period.
             </p>
           ) : (
             <div className="space-y-2">

@@ -31,16 +31,6 @@ export interface PullRequest {
   };
 }
 
-export interface ApplicantIntelligence {
-  feasibilityScore: number; // 0 - 100
-  grade: 'PRIME' | 'STRONG' | 'SELECTIVE' | 'CONGESTED';
-  competitionDensity: 'Low' | 'Moderate' | 'Fierce';
-  competingApplicants: number;
-  tacticalTakeaway: string;
-  speedPercentile: string;
-  maintainerResponsiveness: 'Instant' | 'Active' | 'Moderate' | 'Delayed';
-}
-
 export interface RepoMetrics {
   mergeRatePct: number;
   totalPRs: number;
@@ -51,7 +41,6 @@ export interface RepoMetrics {
   contributorsCount: number;
   allTimeContributorsCount?: number;
   avgMergeTimeHours: number | null;
-  intelligence?: ApplicantIntelligence;
 }
 
 export interface RepoStats {

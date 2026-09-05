@@ -23,11 +23,11 @@ const PRESET_REPOS = [
 ];
 
 const TIME_FILTERS: { label: string; value: TimeFilter }[] = [
-  { label: '2 Weeks', value: '2w' },
-  { label: '1 Month', value: '1m' },
-  { label: '3 Months', value: '3m' },
-  { label: '6 Months', value: '6m' },
-  { label: 'All Time', value: 'all' },
+  { label: 'Last 2 weeks', value: '2w' },
+  { label: 'Last month', value: '1m' },
+  { label: 'Last 3 months', value: '3m' },
+  { label: 'Last 6 months', value: '6m' },
+  { label: 'All available', value: 'all' },
 ];
 
 export const SearchSection: React.FC<SearchSectionProps> = ({
@@ -95,21 +95,36 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
   return (
     <section className="w-full pt-6 sm:pt-8 pb-3 sm:pb-4" aria-label="Repository search and filters">
       <div className="max-w-3xl mx-auto text-center space-y-3 sm:space-y-4">
-        {/* Dual-Tone Architectural Headline */}
         <div className="px-2">
           <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-display font-bold tracking-tight leading-tight">
-            <span className="text-[#161514]">Repository PR & Contributor</span>{' '}
-            <span className="text-[#787571] font-medium block xs:inline">Intelligence Terminal</span>
+            <span className="text-[#161514]">Find a project where you can</span>{' '}
+            <span className="text-[#787571] font-medium block xs:inline">make a contribution.</span>
           </h1>
           <p className="mt-2 text-xs sm:text-sm md:text-base text-[#524E48] font-sans max-w-xl mx-auto">
-            Audit merge turnaround velocity, identify genuine maintainers, and size up applicant competition.
+            Paste a GitHub project link to see how active it is, how quickly contributions are reviewed, and who is already involved.
           </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-left px-1" aria-label="What this check shows">
+          {[
+            ['1', 'Recent activity', 'See whether people are currently opening pull requests.'],
+            ['2', 'Review pace', 'Learn how long merged contributions usually take.'],
+            ['3', 'Community', 'See maintainers and other active contributors.'],
+          ].map(([number, title, description]) => (
+            <div key={number} className="flex gap-2.5 rounded-xl bg-white/75 p-3 border border-[#E5E0D8]">
+              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-[#EAA036]/15 text-[11px] font-bold text-[#9E6212] flex-shrink-0">{number}</span>
+              <div>
+                <p className="text-xs font-semibold text-[#161514]">{title}</p>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-[#787571]">{description}</p>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Search Bar Form - Solid White Architectural Card */}
         <form onSubmit={handleSubmit} className="mt-4 sm:mt-6 px-1" role="search">
           <label htmlFor="repo-search-input" className="sr-only">
-            GitHub Repository URL or owner/repo format
+            GitHub project link or owner/repository name
           </label>
           <div className="flex flex-col sm:flex-row items-stretch gap-2 p-1.5 rounded-2xl bg-white border border-[#E5E0D8] shadow-xs focus-within:border-[#EAA036] focus-within:ring-2 focus-within:ring-[#EAA036]/20 transition-all">
             <div className="flex-1 flex items-center px-3 gap-2 min-h-[44px]">
@@ -119,7 +134,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
                 type="text"
                 value={inputVal}
                 onChange={(e) => setInputVal(e.target.value)}
-                placeholder="Enter repo (e.g. facebook/react)"
+                placeholder="Paste a GitHub link or enter owner/project"
                 className="w-full bg-transparent py-2 text-xs xs:text-sm sm:text-base text-[#161514] placeholder-[#8F8B83] focus:outline-none font-mono"
                 disabled={loading}
                 autoComplete="off"
@@ -145,11 +160,11 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Analyzing...</span>
+                  <span>Checking project...</span>
                 </>
               ) : (
                 <>
-                  <span>Inspect</span>
+                  <span>Check this project</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
@@ -157,16 +172,12 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
           </div>
         </form>
 
-        {/* Time Filter Pills & Presets Row - Bulletproof responsive layout */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-3 pt-2 px-1">
-          {/* Time Filter Pills - Cleanly centered on mobile/tablet, left-aligned on desktop */}
           <div className="w-full md:w-auto flex justify-center md:justify-start">
-            <div
-              className="flex items-center gap-1 p-1 rounded-xl bg-[#EFECE6] border border-[#E5E0D8] overflow-x-auto no-scrollbar max-w-full"
-              role="group"
-              aria-label="Filter by time period"
-            >
-              {TIME_FILTERS.map((f) => (
+            <div className="flex w-full flex-col items-center gap-1.5 sm:w-auto sm:flex-row sm:items-center">
+              <span className="text-[11px] font-medium text-[#787571] whitespace-nowrap">Show activity from</span>
+              <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-[#E5E0D8] bg-[#EFECE6] p-1 no-scrollbar" role="group" aria-label="Choose time period">
+                {TIME_FILTERS.map((f) => (
                 <button
                   key={f.value}
                   onClick={() => {
@@ -183,14 +194,14 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
                 >
                   {f.label}
                 </button>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Quick Presets - Cleanly grouped so they wrap uniformly without lonely orphan buttons */}
           <div className="flex items-center justify-center md:justify-end gap-1.5 flex-wrap text-xs" aria-label="Popular repository presets">
             <span className="text-[#787571] flex items-center gap-1 text-[11px] sm:text-xs font-medium flex-shrink-0">
-              <Sparkles className="w-3.5 h-3.5 text-[#EAA036] flex-shrink-0" /> Presets:
+              <Sparkles className="w-3.5 h-3.5 text-[#EAA036] flex-shrink-0" /> Try an example:
             </span>
             <div className="flex items-center gap-1.5 flex-wrap justify-center">
               {PRESET_REPOS.map((preset) => (
@@ -207,11 +218,10 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
           </div>
         </div>
 
-        {/* Recent Repositories Strip (Max 5) & Intuitive Storage Purge Button */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2 px-1 text-xs border-t border-[#E5E0D8]/60 mt-1">
           <div className="flex items-center gap-1.5 flex-wrap justify-center sm:justify-start">
             <span className="text-[#787571] flex items-center gap-1 text-[11px] font-medium flex-shrink-0">
-              <History className="w-3.5 h-3.5 text-[#EAA036] flex-shrink-0" /> Recent:
+              <History className="w-3.5 h-3.5 text-[#EAA036] flex-shrink-0" /> Recently checked:
             </span>
             {recentRepos.length > 0 ? (
               recentRepos.map((repo) => (
@@ -228,7 +238,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
               ))
             ) : (
               <span className="text-[11px] font-mono text-[#8F8B83] italic">
-                Past repositories appear here (last 5 kept in local storage)
+                Projects you check will appear here on this device.
               </span>
             )}
           </div>
@@ -242,17 +252,17 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
                 ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                 : 'text-[#787571] hover:text-rose-700 hover:bg-rose-50 border-transparent hover:border-rose-200'
             }`}
-            title="Clear stored recent URLs and cached responses from browser storage whenever the site feels heavy"
+            title="Remove recently checked projects and saved results from this browser"
           >
             {clearingStorage ? (
               <>
                 <Check className="w-3 h-3 text-emerald-600 flex-shrink-0" />
-                <span className="text-emerald-700 font-sans font-medium">Storage Cleared</span>
+                <span className="text-emerald-700 font-sans font-medium">Saved data removed</span>
               </>
             ) : (
               <>
                 <Trash2 className="w-3 h-3 flex-shrink-0" />
-                <span>Clear storage</span>
+                <span>Clear saved data</span>
               </>
             )}
           </button>
@@ -265,7 +275,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
             aria-live="polite"
           >
             <Loader2 className="w-3.5 h-3.5 animate-spin flex-shrink-0 text-[#EAA036]" />
-            <span className="truncate max-w-xs sm:max-w-md">{loadingProgress}</span>
+            <span className="truncate max-w-xs sm:max-w-md">{loadingProgress.replace('Interrogating', 'Checking').replace('Executing single-request GraphQL accelerator', 'Loading project data').replace('Accessing official contributor roster', 'Finding active contributors')}</span>
           </div>
         )}
       </div>

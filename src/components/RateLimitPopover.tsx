@@ -58,7 +58,7 @@ export const RateLimitPopover: React.FC<RateLimitPopoverProps> = ({
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="GitHub API Rate Limit Intelligence"
+        aria-label="GitHub request limit"
       >
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-[#E5E0D8]">
@@ -76,10 +76,10 @@ export const RateLimitPopover: React.FC<RateLimitPopoverProps> = ({
             </div>
             <div>
               <h3 className="text-xs font-semibold tracking-wide uppercase font-mono text-[#524E48]">
-                API Quota Intelligence
+                GitHub request limit
               </h3>
               <p className="text-[11px] text-[#787571]">
-                {isAuthenticated ? 'Authenticated (PAT Active)' : 'Public Guest Mode'}
+                {isAuthenticated ? 'Your token is connected' : 'Using public GitHub access'}
               </p>
             </div>
           </div>
@@ -105,11 +105,11 @@ export const RateLimitPopover: React.FC<RateLimitPopoverProps> = ({
                 {remaining.toLocaleString()}
               </span>
               <span className="text-xs font-mono text-[#787571]">
-                / {limit >= 1000 ? `${(limit / 1000).toFixed(0)}k` : limit} req/hr
+                / {limit >= 1000 ? `${(limit / 1000).toFixed(0)}k` : limit} checks per hour
               </span>
             </div>
             <span className="text-[11px] font-mono font-medium text-[#787571]">
-              {pctRemaining}% left
+              {pctRemaining}% remaining
             </span>
           </div>
 
@@ -127,7 +127,7 @@ export const RateLimitPopover: React.FC<RateLimitPopoverProps> = ({
             <div className="mt-2.5 pt-2 border-t border-[#E5E0D8]/60 flex items-center justify-between text-[11px] text-[#524E48]">
               <span className="flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5 text-[#EAA036]" />
-                <span>Next hourly reset:</span>
+                <span>Resets in:</span>
               </span>
               <span className="font-mono font-bold text-[#161514]">
                 {timeLeftStr || 'in ~1 hr'}
@@ -136,33 +136,31 @@ export const RateLimitPopover: React.FC<RateLimitPopoverProps> = ({
           )}
         </div>
 
-        {/* Why did credits drop? Explanation */}
         <div className="mt-3.5 space-y-2 text-xs text-[#524E48] leading-relaxed">
           <div className="flex items-start gap-2">
             <Wifi className="w-3.5 h-3.5 text-[#EAA036] flex-shrink-0 mt-0.5" />
             <p className="text-[11px]">
-              <strong className="text-[#161514]">Shared IP Quota:</strong> Without a token, GitHub strictly caps all requests from your public IP address to 60/hr. Any other browser tabs, devices on your Wi-Fi, or VS Code tools draw from this exact same pool.
+              <strong className="text-[#161514]">Why this limit changes:</strong> Without a token, GitHub shares 60 requests per hour across activity from this internet connection, including other apps or devices.
             </p>
           </div>
 
           <div className="flex items-start gap-2">
             <Info className="w-3.5 h-3.5 text-[#EAA036] flex-shrink-0 mt-0.5" />
             <p className="text-[11px]">
-              <strong className="text-[#161514]">Optimized Consumption:</strong> Guest searches consume only <strong>1 API request</strong> for 100 pull requests. Changing time filters (24h, 7d, 30d) or inspecting contributors consumes <strong>0 requests</strong> via local caching.
+              <strong className="text-[#161514]">Saved results help:</strong> GitHub Spy reuses recent results when it can, so changing the time period or opening a contributor often does not need another GitHub request.
             </p>
           </div>
         </div>
 
-        {/* Unlock 5,000 req/hr CTA */}
         {!isAuthenticated && (
           <div className="mt-4 pt-3 border-t border-[#E5E0D8]">
             <div className="p-3 rounded-xl bg-[#EAA036]/10 border border-[#EAA036]/30 mb-3">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-[#9E6212] mb-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#EAA036]" />
-                <span>Instant 5,000 Requests/Hour</span>
+                <span>Up to 5,000 checks per hour</span>
               </div>
               <p className="text-[11px] text-[#524E48] leading-normal">
-                Add a free GitHub Personal Access Token. It grants a private 5,000 req/hr quota and unlocks our single-request GraphQL accelerator.
+                Add a free GitHub personal access token to use your own GitHub limit instead of the shared public limit.
               </p>
             </div>
 
@@ -175,7 +173,7 @@ export const RateLimitPopover: React.FC<RateLimitPopoverProps> = ({
               className="w-full py-2 px-3 rounded-xl bg-[#EAA036] hover:bg-[#DF9126] active:bg-[#C87E18] text-[#161514] text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
             >
               <KeyRound className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>Add Personal Access Token (Free)</span>
+              <span>Add a GitHub token</span>
               <ChevronRight className="w-3.5 h-3.5 ml-auto flex-shrink-0" />
             </button>
           </div>

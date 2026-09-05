@@ -15,7 +15,7 @@ export const Footer: React.FC = () => {
                 GithubSpy
               </span>
               <p className="text-[11px] text-[#787571] font-sans">
-                Elite Contributor Intelligence & Applicant Feasibility Radar
+                A simple way to explore open-source projects before you contribute.
               </p>
             </div>
           </div>
@@ -56,25 +56,24 @@ export const Footer: React.FC = () => {
           </div>
         </div>
 
-        {/* Community Dedication & Giving Back to Open Source */}
         <div className="p-4 sm:p-5 rounded-2xl bg-[#F7F5F0] border border-[#E5E0D8] text-xs font-sans text-[#423E38] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-6 shadow-xs">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-[#EAA036]/15 text-[#9E6212] border border-[#EAA036]/30">
-                100% Free & Open Source
+                Free to use
               </span>
               <span className="text-[11px] font-mono text-[#787571] hidden xs:inline">
-                Zero Paywalls • Zero Tracking
+                Built for new contributors
               </span>
             </div>
             <p className="text-xs text-[#524E48] leading-relaxed">
-              Engineered by <strong className="text-[#161514]">@TarunyaProgrammer</strong> as a personal commitment to giving back to the global open source community. Built to empower newcomers, applicants, and GSoC contenders with transparent maintainer intelligence.
+              GitHub Spy helps people take their first step into open source with a clearer view of project activity and contribution patterns.
             </p>
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0 text-[11px] font-mono text-[#787571]">
             <span className="px-2.5 py-1 rounded-xl bg-white border border-[#E5E0D8] text-[#161514] font-medium shadow-2xs">
-              Giving Back to OSS
+              For open source
             </span>
           </div>
         </div>
@@ -95,7 +94,7 @@ export const Footer: React.FC = () => {
           </p>
 
           <p className="flex items-center gap-1">
-            <span>Crafted with precision by</span>
+            <span>Built by</span>
             <a
               href="https://github.com/TarunyaProgrammer"
               target="_blank"
