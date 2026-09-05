@@ -452,68 +452,50 @@ export const Footer: React.FC = () => {
       </div>
 
       {/* ========================================================= */}
-      {/* 3. BLUEPRINT DRAFTING BANNER: SLENDER ARCHITECTURAL STRIP */}
+      {/* 3. SIGNATURE BRAND DRAFTING BANNER                        */}
       {/* ========================================================= */}
-      <div className="relative w-full bg-[#F3F0EA] border-b border-[#DDD8CE] px-4 sm:px-8 py-3 sm:py-4 select-none overflow-hidden">
-        
-        {/* Corner Crosshairs */}
-        <span className="absolute top-1.5 left-2 font-mono text-[10px] text-[#44403C] font-light leading-none select-none" aria-hidden="true">+</span>
-        <span className="absolute top-1.5 right-2 font-mono text-[10px] text-[#44403C] font-light leading-none select-none" aria-hidden="true">+</span>
-        <span className="absolute bottom-1.5 left-2 font-mono text-[10px] text-[#44403C] font-light leading-none select-none" aria-hidden="true">+</span>
-        <span className="absolute bottom-1.5 right-2 font-mono text-[10px] text-[#44403C] font-light leading-none select-none" aria-hidden="true">+</span>
+      <div className="relative w-full bg-[#EFECE6]/80 border-b border-[#DDD8CE] px-4 sm:px-8 py-3 sm:py-3.5 select-none overflow-hidden">
+        {/* Corner Drafting Crosshairs */}
+        <span className="absolute top-1.5 left-2 font-mono text-[9px] text-[#78716C] font-light leading-none select-none" aria-hidden="true">+</span>
+        <span className="absolute top-1.5 right-2 font-mono text-[9px] text-[#78716C] font-light leading-none select-none" aria-hidden="true">+</span>
+        <span className="absolute bottom-1.5 left-2 font-mono text-[9px] text-[#78716C] font-light leading-none select-none" aria-hidden="true">+</span>
+        <span className="absolute bottom-1.5 right-2 font-mono text-[9px] text-[#78716C] font-light leading-none select-none" aria-hidden="true">+</span>
 
-        {/* Top Measurement Ruler Ticks (Decorative) */}
-        <div className="w-full flex justify-between items-center text-[7px] font-mono text-[#44403C] tracking-[0.25em] overflow-hidden select-none mb-1" aria-hidden="true">
-          <span>|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|</span>
-        </div>
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          {/* Left Drafting Guideline */}
+          <div className="hidden sm:flex items-center gap-2 flex-1 min-w-0" aria-hidden="true">
+            <span className="text-[9px] font-mono text-[#57534E] tracking-wider uppercase flex-shrink-0">FIG. 04</span>
+            <div className="h-px bg-gradient-to-r from-[#DDD8CE] to-transparent flex-1" />
+          </div>
 
-        {/* Compact Architectural Blueprint Typography */}
-        <div className="w-full flex items-center justify-center py-1 sm:py-2">
-          <svg
-            viewBox="0 0 1000 85"
-            className="w-full max-w-4xl h-auto"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-label="GitHub Spy architectural logo"
-            role="img"
-          >
-            {/* Horizontal Construction / Alignment Guides */}
-            <line x1="20" y1="14" x2="980" y2="14" stroke="#D1CBC1" strokeWidth="0.6" strokeDasharray="3 3" />
-            <line x1="20" y1="46" x2="980" y2="46" stroke="#C5BFB5" strokeWidth="0.6" strokeDasharray="3 3" />
-            <line x1="20" y1="74" x2="980" y2="74" stroke="#D1CBC1" strokeWidth="0.6" strokeDasharray="3 3" />
+          {/* Centered Harmonious Brand Signature */}
+          <div className="flex items-center justify-center gap-2.5 sm:gap-3 flex-shrink-0 mx-auto py-1">
+            {/* Minimalist Radar Emblem Tile */}
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#161514] border border-[#2E2B27] flex items-center justify-center shadow-xs flex-shrink-0">
+              <span className="w-2 h-2 rounded-full bg-[#EAA036] animate-pulse" />
+            </div>
 
-            {/* Architectural Outline Text - Using Brand Typographic System (Satoshi / General Sans) */}
-            <text
-              x="500"
-              y="64"
-              textAnchor="middle"
-              className="font-sans select-none"
+            {/* Wordmark in Exact Navbar Typography */}
+            <span
+              className="font-sans font-bold tracking-tight text-[#161514] text-2xl sm:text-3xl md:text-4xl leading-none"
               style={{
                 fontFamily: "'Satoshi', 'General Sans', 'Plus Jakarta Sans', -apple-system, sans-serif",
-                fontSize: '68px',
-                fontWeight: 900,
-                letterSpacing: '0.06em',
-                fill: '#F3F0EA',
-                stroke: '#161514',
-                strokeWidth: '2.2px',
-                strokeLinejoin: 'round',
               }}
             >
-              GITHUBSPY
-            </text>
+              githubspy
+            </span>
 
-            {/* Centerline Crosshairs on letters */}
-            <line x1="160" y1="10" x2="160" y2="78" stroke="#C5BFB5" strokeWidth="0.5" strokeDasharray="2 3" />
-            <line x1="330" y1="10" x2="330" y2="78" stroke="#C5BFB5" strokeWidth="0.5" strokeDasharray="2 3" />
-            <line x1="500" y1="10" x2="500" y2="78" stroke="#C5BFB5" strokeWidth="0.5" strokeDasharray="2 3" />
-            <line x1="670" y1="10" x2="670" y2="78" stroke="#C5BFB5" strokeWidth="0.5" strokeDasharray="2 3" />
-            <line x1="840" y1="10" x2="840" y2="78" stroke="#C5BFB5" strokeWidth="0.5" strokeDasharray="2 3" />
-          </svg>
-        </div>
+            {/* Signature Radar Pill */}
+            <span className="text-[10px] sm:text-[11px] font-mono font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-[#EAA036]/15 text-[#965306] border border-[#EAA036]/30">
+              radar
+            </span>
+          </div>
 
-        {/* Bottom Measurement Ruler Ticks (Decorative) */}
-        <div className="w-full flex justify-between items-center text-[7px] font-mono text-[#44403C] tracking-[0.25em] overflow-hidden select-none mt-1" aria-hidden="true">
-          <span>|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|</span>
+          {/* Right Drafting Guideline */}
+          <div className="hidden sm:flex items-center gap-2 flex-1 min-w-0 justify-end" aria-hidden="true">
+            <div className="h-px bg-gradient-to-l from-[#DDD8CE] to-transparent flex-1" />
+            <span className="text-[9px] font-mono text-[#57534E] tracking-wider uppercase flex-shrink-0">EST. 2026</span>
+          </div>
         </div>
       </div>
 
