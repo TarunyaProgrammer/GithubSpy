@@ -1,0 +1,8 @@
+# GithubSpy - Contributor & Applicant Intelligence Radar
+# https://githubspy.vercel.app
+
+User-agent: *
+Allow: /
+
+# Direct search engine crawlers to the sitemap
+Sitemap: https://githubspy.vercel.app/sitemap.xml
