@@ -31,12 +31,12 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right Actions - Warm Editorial Styling */}
           <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-3 flex-shrink-0">
-            {/* Star on GitHub CTA - Signature Honey Amber Solid Button */}
+            {/* Star repo CTA */}
             <a
               href="https://github.com/TarunyaProgrammer/GithubSpy"
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Star GitHub Spy on GitHub"
+              aria-label="Star on GitHub — TarunyaProgrammer/GithubSpy repository"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#EAA036] hover:bg-[#DF9126] active:bg-[#C87E18] text-[#161514] shadow-xs transition-all group focus-visible:ring-2 focus-visible:ring-[#EAA036]"
             >
               <Star className="w-3.5 h-3.5 fill-[#161514] text-[#161514] group-hover:scale-110 transition-transform flex-shrink-0" />
@@ -88,7 +88,11 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Token setting trigger */}
             <button
               onClick={onOpenTokenModal}
-              aria-label="Add or manage a GitHub access token"
+              aria-label={
+                hasPersonalToken
+                  ? 'Token connected — manage GitHub personal access token'
+                  : 'Add GitHub token — unlock 5,000 requests per hour'
+              }
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer ${
                 hasPersonalToken
                   ? 'bg-[#EAA036]/15 text-[#9E6212] hover:bg-[#EAA036]/25 border border-[#EAA036]/35'

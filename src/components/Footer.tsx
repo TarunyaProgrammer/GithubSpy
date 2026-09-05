@@ -50,7 +50,7 @@ export const Footer: React.FC = () => {
   };
 
   return (
-    <footer className="w-full mt-auto bg-[#F6F5F2] border-t border-[#DDD8CE] text-[#161514] font-sans antialiased selection:bg-[#EAA036]/20">
+    <footer className="w-full mt-auto bg-[#F6F5F2] border-t border-[#DDD8CE] text-[#161514] font-sans antialiased selection:bg-[#EAA036]/20" role="contentinfo">
       
       {/* ========================================================= */}
       {/* 1. TOP SECTION: BRAND STATEMENT + NAVIGATION + 3D RADAR   */}
@@ -65,7 +65,7 @@ export const Footer: React.FC = () => {
                 An open source radar that illuminates your contribution path
               </h2>
             </div>
-            <div className="mt-3 pt-3 border-t border-[#DDD8CE]/60 flex items-center gap-2 text-[10px] font-mono text-[#787571]">
+            <div className="mt-3 pt-3 border-t border-[#DDD8CE]/60 flex items-center gap-2 text-[10px] font-mono text-[#57534E]">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#EAA036] animate-pulse" />
               <span>Maintainer intelligence & PR turnaround telemetry</span>
             </div>
@@ -74,27 +74,27 @@ export const Footer: React.FC = () => {
           {/* Navigation Column 1: PLATFORM */}
           <div className="lg:col-span-2 p-4 sm:p-5 flex flex-col justify-between">
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#787571] block mb-2.5">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#57534E] block mb-2.5">
                 Platform
               </span>
-              <ul className="space-y-1.5 text-xs font-medium">
+              <ul className="space-y-1 text-xs font-medium">
                 <li>
-                  <a href="#" className="text-[#C87E18] font-bold hover:underline transition-colors">
+                  <a href="#" className="inline-block py-1 text-[#965306] font-bold hover:underline transition-colors">
                     Home
                   </a>
                 </li>
                 <li>
-                  <a href="#repo-search-input" className="text-[#423E38] hover:text-[#161514] transition-colors">
+                  <a href="#repo-search-input" className="inline-block py-1 text-[#2A2724] hover:text-[#161514] hover:underline transition-colors">
                     Inspect Repository
                   </a>
                 </li>
                 <li>
-                  <a href="#repo-search-input" className="text-[#423E38] hover:text-[#161514] transition-colors">
+                  <a href="#repo-search-input" className="inline-block py-1 text-[#2A2724] hover:text-[#161514] hover:underline transition-colors">
                     Review Pace Engine
                   </a>
                 </li>
                 <li>
-                  <a href="#repo-search-input" className="text-[#423E38] hover:text-[#161514] transition-colors">
+                  <a href="#repo-search-input" className="inline-block py-1 text-[#2A2724] hover:text-[#161514] hover:underline transition-colors">
                     Applicant Index (AFI)
                   </a>
                 </li>
@@ -105,32 +105,32 @@ export const Footer: React.FC = () => {
           {/* Navigation Column 2: EXPLORE PRESETS */}
           <div className="lg:col-span-2 p-4 sm:p-5 flex flex-col justify-between">
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#787571] block mb-2.5">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#57534E] block mb-2.5">
                 Explore
               </span>
-              <ul className="space-y-1.5 text-xs font-medium">
+              <ul className="space-y-1 text-xs font-medium">
                 <li>
-                  <a href="https://github.com/zulip/zulip" target="_blank" rel="noopener noreferrer" className="text-[#423E38] hover:text-[#161514] transition-colors flex items-center justify-between group">
+                  <a href="https://github.com/zulip/zulip" target="_blank" rel="noopener noreferrer" className="py-1 text-[#2A2724] hover:text-[#161514] transition-colors flex items-center justify-between group">
                     <span>Zulip</span>
-                    <ArrowRight className="w-3 h-3 text-[#787571] group-hover:translate-x-0.5 transition-transform" />
+                    <ArrowRight className="w-3 h-3 text-[#57534E] group-hover:translate-x-0.5 transition-transform" />
                   </a>
                 </li>
                 <li>
-                  <a href="https://github.com/facebook/react" target="_blank" rel="noopener noreferrer" className="text-[#423E38] hover:text-[#161514] transition-colors flex items-center justify-between group">
+                  <a href="https://github.com/facebook/react" target="_blank" rel="noopener noreferrer" className="py-1 text-[#2A2724] hover:text-[#161514] transition-colors flex items-center justify-between group">
                     <span>React</span>
-                    <ArrowRight className="w-3 h-3 text-[#787571] group-hover:translate-x-0.5 transition-transform" />
+                    <ArrowRight className="w-3 h-3 text-[#57534E] group-hover:translate-x-0.5 transition-transform" />
                   </a>
                 </li>
                 <li>
-                  <a href="https://github.com/django/django" target="_blank" rel="noopener noreferrer" className="text-[#423E38] hover:text-[#161514] transition-colors flex items-center justify-between group">
+                  <a href="https://github.com/django/django" target="_blank" rel="noopener noreferrer" className="py-1 text-[#2A2724] hover:text-[#161514] transition-colors flex items-center justify-between group">
                     <span>Django</span>
-                    <ArrowRight className="w-3 h-3 text-[#787571] group-hover:translate-x-0.5 transition-transform" />
+                    <ArrowRight className="w-3 h-3 text-[#57534E] group-hover:translate-x-0.5 transition-transform" />
                   </a>
                 </li>
                 <li>
-                  <a href="https://github.com/sympy/sympy" target="_blank" rel="noopener noreferrer" className="text-[#423E38] hover:text-[#161514] transition-colors flex items-center justify-between group">
+                  <a href="https://github.com/sympy/sympy" target="_blank" rel="noopener noreferrer" className="py-1 text-[#2A2724] hover:text-[#161514] transition-colors flex items-center justify-between group">
                     <span>SymPy</span>
-                    <ArrowRight className="w-3 h-3 text-[#787571] group-hover:translate-x-0.5 transition-transform" />
+                    <ArrowRight className="w-3 h-3 text-[#57534E] group-hover:translate-x-0.5 transition-transform" />
                   </a>
                 </li>
               </ul>
@@ -140,27 +140,27 @@ export const Footer: React.FC = () => {
           {/* Navigation Column 3: RESOURCES */}
           <div className="lg:col-span-2 p-4 sm:p-5 flex flex-col justify-between">
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#787571] block mb-2.5">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#57534E] block mb-2.5">
                 Resources
               </span>
-              <ul className="space-y-1.5 text-xs font-medium">
+              <ul className="space-y-1 text-xs font-medium">
                 <li>
-                  <a href="https://github.com/TarunyaProgrammer/GithubSpy#readme" target="_blank" rel="noopener noreferrer" className="text-[#423E38] hover:text-[#161514] transition-colors">
+                  <a href="https://github.com/TarunyaProgrammer/GithubSpy#readme" target="_blank" rel="noopener noreferrer" className="inline-block py-1 text-[#2A2724] hover:text-[#161514] transition-colors">
                     Insights
                   </a>
                 </li>
                 <li>
-                  <a href="https://github.com/TarunyaProgrammer/GithubSpy#architecture" target="_blank" rel="noopener noreferrer" className="text-[#423E38] hover:text-[#161514] transition-colors">
+                  <a href="https://github.com/TarunyaProgrammer/GithubSpy#architecture" target="_blank" rel="noopener noreferrer" className="inline-block py-1 text-[#2A2724] hover:text-[#161514] transition-colors">
                     Architecture
                   </a>
                 </li>
                 <li>
-                  <a href="https://github.com/TarunyaProgrammer/GithubSpy#rate-limits" target="_blank" rel="noopener noreferrer" className="text-[#423E38] hover:text-[#161514] transition-colors">
+                  <a href="https://github.com/TarunyaProgrammer/GithubSpy#rate-limits" target="_blank" rel="noopener noreferrer" className="inline-block py-1 text-[#2A2724] hover:text-[#161514] transition-colors">
                     GraphQL Pipeline
                   </a>
                 </li>
                 <li>
-                  <a href="https://github.com/TarunyaProgrammer/GithubSpy/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" className="text-[#423E38] hover:text-[#161514] transition-colors">
+                  <a href="https://github.com/TarunyaProgrammer/GithubSpy/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" className="inline-block py-1 text-[#2A2724] hover:text-[#161514] transition-colors">
                     SPSL-1.0 License
                   </a>
                 </li>
@@ -178,7 +178,6 @@ export const Footer: React.FC = () => {
               aria-label="Architectural Radar Isometric Cube"
             >
               {/* Outer Isometric Cube Facets */}
-              {/* Top Isometric Plane */}
               <polygon
                 points="60,18 98,40 60,62 22,40"
                 stroke="#161514"
@@ -186,7 +185,6 @@ export const Footer: React.FC = () => {
                 fill="#FFFFFF"
                 strokeLinejoin="round"
               />
-              {/* Left Isometric Plane */}
               <polygon
                 points="22,40 60,62 60,104 22,82"
                 stroke="#161514"
@@ -194,7 +192,6 @@ export const Footer: React.FC = () => {
                 fill="#F7F5F0"
                 strokeLinejoin="round"
               />
-              {/* Right Isometric Plane */}
               <polygon
                 points="60,62 98,40 98,82 60,104"
                 stroke="#161514"
@@ -202,8 +199,6 @@ export const Footer: React.FC = () => {
                 fill="#E8E5DD"
                 strokeLinejoin="round"
               />
-
-              {/* Architectural Top-Face Inset (Nested Radar Surface) */}
               <polygon
                 points="60,26 88,40 60,54 32,40"
                 stroke="#161514"
@@ -211,20 +206,12 @@ export const Footer: React.FC = () => {
                 strokeDasharray="2 2"
                 fill="#F4F1EA"
               />
-
-              {/* Left Face Drafting Grid Lines */}
               <line x1="35" y1="47" x2="35" y2="89" stroke="#DDD8CE" strokeWidth="1" />
               <line x1="48" y1="55" x2="48" y2="97" stroke="#DDD8CE" strokeWidth="1" />
-
-              {/* Right Face Drafting Grid Lines */}
               <line x1="73" y1="55" x2="73" y2="97" stroke="#DDD8CE" strokeWidth="1" />
               <line x1="85" y1="47" x2="85" y2="89" stroke="#DDD8CE" strokeWidth="1" />
-
-              {/* Central Radar Crosshair on Top Face */}
               <line x1="60" y1="32" x2="60" y2="48" stroke="#EAA036" strokeWidth="1.5" strokeLinecap="round" />
               <line x1="46" y1="40" x2="74" y2="40" stroke="#EAA036" strokeWidth="1.5" strokeLinecap="round" />
-
-              {/* Glowing Honey-Amber Beacon Node */}
               <circle cx="60" cy="40" r="3" fill="#EAA036" />
               <circle cx="60" cy="40" r="5" stroke="#EAA036" strokeWidth="1" strokeOpacity="0.4" className="animate-ping" />
             </svg>
@@ -242,10 +229,10 @@ export const Footer: React.FC = () => {
           {/* Subscribe Box - Direct Mail to tarunya.programmer@gmail.com */}
           <div className="sm:col-span-2 lg:col-span-4 p-4 sm:p-5 flex flex-col justify-between">
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#787571] block mb-1.5">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#57534E] block mb-1.5">
                 Subscribe & Stay Informed
               </span>
-              <p className="text-xs text-[#524E48] leading-relaxed mb-3">
+              <p className="text-xs text-[#2A2724] leading-relaxed mb-3">
                 Receive open-source maintainer alerts and GSoC telemetry dispatched straight to your inbox.
               </p>
             </div>
@@ -265,13 +252,14 @@ export const Footer: React.FC = () => {
                   }
                   disabled={status === 'loading' || status === 'success'}
                   required
-                  className="w-full px-3 py-2 text-xs text-[#161514] placeholder-[#8F8B83] bg-transparent focus:outline-none font-mono"
+                  aria-label="Email address for open-source newsletter updates"
+                  className="w-full px-3 py-2 text-xs text-[#161514] placeholder-[#57534E] bg-transparent focus:outline-none font-mono min-h-[36px]"
                 />
                 <button
                   type="submit"
                   disabled={status === 'loading' || status === 'success'}
-                  aria-label="Submit newsletter subscription"
-                  className="px-3.5 flex items-center justify-center border-l border-[#DDD8CE] bg-[#F7F5F0] hover:bg-[#EFECE6] text-[#161514] transition-colors cursor-pointer disabled:bg-emerald-50"
+                  aria-label="Submit newsletter subscription to tarunya.programmer@gmail.com"
+                  className="px-3.5 flex items-center justify-center border-l border-[#DDD8CE] bg-[#F7F5F0] hover:bg-[#EFECE6] text-[#161514] transition-colors cursor-pointer disabled:bg-emerald-50 min-h-[36px]"
                   title="Subscribe to updates (notifies tarunya.programmer@gmail.com)"
                 >
                   {status === 'loading' ? (
@@ -286,12 +274,12 @@ export const Footer: React.FC = () => {
 
               {/* Instant feedback notification */}
               {status === 'success' ? (
-                <p className="mt-1.5 text-[11px] font-mono text-emerald-700 flex items-center gap-1.5">
+                <p className="mt-1.5 text-[11px] font-mono text-emerald-800 flex items-center gap-1.5">
                   <Check className="w-3 h-3" />
                   <span>Subscribed! Notification sent to tarunya.programmer@gmail.com</span>
                 </p>
               ) : (
-                <p className="mt-1.5 text-[10px] font-mono text-[#8F8B83]">
+                <p className="mt-1.5 text-[10px] font-mono text-[#57534E]">
                   Dispatched directly to maintainer inbox. Zero spam.
                 </p>
               )}
@@ -301,13 +289,13 @@ export const Footer: React.FC = () => {
           {/* Repository Coordinates */}
           <div className="sm:col-span-1 lg:col-span-2 p-4 sm:p-5 flex flex-col justify-between border-t sm:border-t-0 border-[#DDD8CE]">
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#787571] block mb-1.5">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#57534E] block mb-1.5">
                 Repository
               </span>
               <p className="text-xs font-mono font-semibold text-[#161514] leading-snug">
                 TarunyaProgrammer / GithubSpy
               </p>
-              <p className="mt-0.5 text-[11px] font-mono text-[#787571]">
+              <p className="mt-0.5 text-[11px] font-mono text-[#57534E]">
                 Global Open Source
               </p>
             </div>
@@ -316,7 +304,7 @@ export const Footer: React.FC = () => {
                 href="https://github.com/TarunyaProgrammer/GithubSpy"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-[#161514] hover:text-[#C87E18] transition-colors group"
+                className="inline-flex items-center gap-1 py-1 text-xs font-semibold text-[#161514] hover:text-[#965306] transition-colors group"
               >
                 <span>View on GitHub</span>
                 <ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
@@ -327,22 +315,22 @@ export const Footer: React.FC = () => {
           {/* Connect With Author & Bug Reporting */}
           <div className="sm:col-span-1 lg:col-span-3 p-4 sm:p-5 flex flex-col justify-between border-t sm:border-t-0 border-[#DDD8CE]">
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#787571] block mb-1.5">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#57534E] block mb-1.5">
                 Connect With Author
               </span>
               <p className="text-xs font-semibold text-[#161514]">
                 Tarunya Kesharwani
               </p>
-              <p className="text-[11px] text-[#787571]">
+              <p className="text-[11px] text-[#57534E]">
                 Open-source engineer & researcher
               </p>
 
-              <div className="mt-2 space-y-1">
+              <div className="mt-2 space-y-0.5">
                 <a
                   href="https://www.linkedin.com/in/tarunyakesharwani"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-xs text-[#423E38] hover:text-[#0A66C2] transition-colors font-medium"
+                  className="flex items-center gap-2 py-1 text-xs text-[#2A2724] hover:text-[#0A66C2] transition-colors font-medium"
                 >
                   <Linkedin className="w-3.5 h-3.5 text-[#0A66C2] flex-shrink-0" />
                   <span className="truncate">linkedin.com/in/tarunyakesharwani</span>
@@ -351,16 +339,16 @@ export const Footer: React.FC = () => {
                   href="https://github.com/TarunyaProgrammer"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-xs text-[#423E38] hover:text-[#161514] transition-colors font-medium"
+                  className="flex items-center gap-2 py-1 text-xs text-[#2A2724] hover:text-[#161514] transition-colors font-medium"
                 >
                   <Github className="w-3.5 h-3.5 text-[#161514] flex-shrink-0" />
                   <span className="truncate">github.com/TarunyaProgrammer</span>
                 </a>
                 <a
                   href="mailto:tarunya.programmer@gmail.com"
-                  className="flex items-center gap-2 text-xs text-[#423E38] hover:text-[#C87E18] transition-colors font-medium"
+                  className="flex items-center gap-2 py-1 text-xs text-[#2A2724] hover:text-[#965306] transition-colors font-medium"
                 >
-                  <Mail className="w-3.5 h-3.5 text-[#C87E18] flex-shrink-0" />
+                  <Mail className="w-3.5 h-3.5 text-[#965306] flex-shrink-0" />
                   <span className="truncate">tarunya.programmer@gmail.com</span>
                 </a>
               </div>
@@ -371,7 +359,7 @@ export const Footer: React.FC = () => {
                 href="https://github.com/TarunyaProgrammer/GithubSpy/issues/new"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#C87E18] hover:text-[#9E6212] transition-colors"
+                className="inline-flex items-center gap-1.5 py-1 text-xs font-semibold text-[#965306] hover:text-[#733E03] transition-colors"
               >
                 <Bug className="w-3.5 h-3.5 flex-shrink-0" />
                 <span>Found a bug? Open an issue</span>
@@ -382,15 +370,15 @@ export const Footer: React.FC = () => {
           {/* Social & Ecosystem */}
           <div className="sm:col-span-2 lg:col-span-3 p-4 sm:p-5 flex flex-col justify-between border-t lg:border-t-0 border-[#DDD8CE]">
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#787571] block mb-2">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#57534E] block mb-2">
                 Social & Community
               </span>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs font-medium">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-medium">
                 <a
                   href="https://github.com/TarunyaProgrammer/GithubSpy"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#423E38] hover:text-[#161514] transition-colors"
+                  className="inline-block py-1 text-[#2A2724] hover:text-[#161514] transition-colors"
                 >
                   GitHub
                 </a>
@@ -398,7 +386,7 @@ export const Footer: React.FC = () => {
                   href="https://www.linkedin.com/in/tarunyakesharwani"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#423E38] hover:text-[#0A66C2] transition-colors"
+                  className="inline-block py-1 text-[#2A2724] hover:text-[#0A66C2] transition-colors"
                 >
                   LinkedIn
                 </a>
@@ -406,7 +394,7 @@ export const Footer: React.FC = () => {
                   href="https://github.com/TarunyaProgrammer/GithubSpy/stargazers"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#423E38] hover:text-[#161514] transition-colors"
+                  className="inline-block py-1 text-[#2A2724] hover:text-[#161514] transition-colors"
                 >
                   Star Project
                 </a>
@@ -414,13 +402,13 @@ export const Footer: React.FC = () => {
                   href="https://github.com/TarunyaProgrammer/GithubSpy/issues"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#423E38] hover:text-[#161514] transition-colors"
+                  className="inline-block py-1 text-[#2A2724] hover:text-[#161514] transition-colors"
                 >
                   Bug Reports
                 </a>
                 <a
                   href="mailto:tarunya.programmer@gmail.com"
-                  className="text-[#423E38] hover:text-[#161514] transition-colors"
+                  className="inline-block py-1 text-[#2A2724] hover:text-[#161514] transition-colors"
                 >
                   Direct Email
                 </a>
@@ -428,14 +416,14 @@ export const Footer: React.FC = () => {
                   href="https://github.com/TarunyaProgrammer/GithubSpy/blob/main/LICENSE"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#423E38] hover:text-[#161514] transition-colors"
+                  className="inline-block py-1 text-[#2A2724] hover:text-[#161514] transition-colors"
                 >
                   License
                 </a>
               </div>
             </div>
 
-            <div className="mt-3 pt-3 border-t border-[#DDD8CE]/60 flex items-center gap-2 text-[10px] font-mono text-[#787571]">
+            <div className="mt-3 pt-3 border-t border-[#DDD8CE]/60 flex items-center gap-2 text-[10px] font-mono text-[#57534E]">
               <Shield className="w-3 h-3 text-[#EAA036] flex-shrink-0" />
               <span>SPSL Protected • Zero Tracking</span>
             </div>
@@ -468,14 +456,14 @@ export const Footer: React.FC = () => {
       {/* ========================================================= */}
       <div className="relative w-full bg-[#F3F0EA] border-b border-[#DDD8CE] px-4 sm:px-8 py-3 sm:py-4 select-none overflow-hidden">
         
-        {/* 4 Corner Blueprint Crosses '+' */}
-        <span className="absolute top-1.5 left-2 font-mono text-[10px] text-[#9E9B95] font-light leading-none">+</span>
-        <span className="absolute top-1.5 right-2 font-mono text-[10px] text-[#9E9B95] font-light leading-none">+</span>
-        <span className="absolute bottom-1.5 left-2 font-mono text-[10px] text-[#9E9B95] font-light leading-none">+</span>
-        <span className="absolute bottom-1.5 right-2 font-mono text-[10px] text-[#9E9B95] font-light leading-none">+</span>
+        {/* Corner Crosshairs */}
+        <span className="absolute top-1.5 left-2 font-mono text-[10px] text-[#44403C] font-light leading-none select-none" aria-hidden="true">+</span>
+        <span className="absolute top-1.5 right-2 font-mono text-[10px] text-[#44403C] font-light leading-none select-none" aria-hidden="true">+</span>
+        <span className="absolute bottom-1.5 left-2 font-mono text-[10px] text-[#44403C] font-light leading-none select-none" aria-hidden="true">+</span>
+        <span className="absolute bottom-1.5 right-2 font-mono text-[10px] text-[#44403C] font-light leading-none select-none" aria-hidden="true">+</span>
 
-        {/* Top Measurement Ruler Ticks */}
-        <div className="w-full flex justify-between items-center text-[7px] font-mono text-[#A8A49C] tracking-[0.25em] overflow-hidden opacity-60 mb-1">
+        {/* Top Measurement Ruler Ticks (Decorative) */}
+        <div className="w-full flex justify-between items-center text-[7px] font-mono text-[#44403C] tracking-[0.25em] overflow-hidden select-none mb-1" aria-hidden="true">
           <span>|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|</span>
         </div>
 
@@ -486,6 +474,8 @@ export const Footer: React.FC = () => {
             className="w-full max-w-4xl h-auto"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
+            aria-label="GitHub Spy architectural logo"
+            role="img"
           >
             {/* Horizontal Construction / Alignment Guides */}
             <line x1="20" y1="14" x2="980" y2="14" stroke="#D1CBC1" strokeWidth="0.6" strokeDasharray="3 3" />
@@ -520,8 +510,8 @@ export const Footer: React.FC = () => {
           </svg>
         </div>
 
-        {/* Bottom Measurement Ruler Ticks */}
-        <div className="w-full flex justify-between items-center text-[7px] font-mono text-[#A8A49C] tracking-[0.25em] overflow-hidden opacity-60 mt-1">
+        {/* Bottom Measurement Ruler Ticks (Decorative) */}
+        <div className="w-full flex justify-between items-center text-[7px] font-mono text-[#44403C] tracking-[0.25em] overflow-hidden select-none mt-1" aria-hidden="true">
           <span>|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|</span>
         </div>
       </div>
@@ -532,7 +522,7 @@ export const Footer: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-[#DDD8CE] text-[10px] sm:text-[11px] font-mono">
         
         {/* Copyright & Conception Credits */}
-        <div className="lg:col-span-8 px-4 sm:px-6 py-2.5 text-[#787571] flex items-center flex-wrap gap-x-2">
+        <div className="lg:col-span-8 px-4 sm:px-6 py-2.5 text-[#57534E] flex items-center flex-wrap gap-x-2">
           <span>©{new Date().getFullYear()} GITHUBSPY. ALL RIGHTS RESERVED.</span>
           <span className="hidden sm:inline">|</span>
           <span>CONCEPT & CODE ARCHITECTED BY</span>
@@ -540,7 +530,7 @@ export const Footer: React.FC = () => {
             href="https://github.com/TarunyaProgrammer"
             target="_blank"
             rel="noopener noreferrer"
-            className="font-bold text-[#161514] hover:text-[#C87E18] underline transition-colors"
+            className="font-bold text-[#161514] hover:text-[#965306] underline transition-colors"
           >
             TARUNYAPROGRAMMER
           </a>
@@ -552,7 +542,7 @@ export const Footer: React.FC = () => {
             href="https://github.com/TarunyaProgrammer/GithubSpy#privacy"
             target="_blank"
             rel="noopener noreferrer"
-            className="py-2.5 px-2 text-[#423E38] hover:text-[#161514] hover:bg-[#EFECE6] transition-colors"
+            className="py-2.5 px-2 text-[#2A2724] hover:text-[#161514] hover:bg-[#EFECE6] transition-colors"
           >
             Privacy Policy
           </a>
@@ -560,7 +550,7 @@ export const Footer: React.FC = () => {
             href="https://github.com/TarunyaProgrammer/GithubSpy#terms"
             target="_blank"
             rel="noopener noreferrer"
-            className="py-2.5 px-2 text-[#423E38] hover:text-[#161514] hover:bg-[#EFECE6] transition-colors"
+            className="py-2.5 px-2 text-[#2A2724] hover:text-[#161514] hover:bg-[#EFECE6] transition-colors"
           >
             Terms & Conditions
           </a>
@@ -568,7 +558,7 @@ export const Footer: React.FC = () => {
             href="https://github.com/TarunyaProgrammer/GithubSpy/blob/main/LICENSE"
             target="_blank"
             rel="noopener noreferrer"
-            className="py-2.5 px-2 text-[#423E38] hover:text-[#161514] hover:bg-[#EFECE6] transition-colors font-semibold"
+            className="py-2.5 px-2 text-[#2A2724] hover:text-[#161514] hover:bg-[#EFECE6] transition-colors font-semibold"
           >
             SPSL License
           </a>

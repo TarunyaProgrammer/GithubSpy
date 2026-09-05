@@ -1,0 +1,19 @@
+# GithubSpy — Complete Technical Specification (llms-full.txt)
+
+> Comprehensive architectural and algorithmic reference for GithubSpy.
+
+## Overview
+GithubSpy (https://githubspy.vercel.app/) provides open-source maintainer intelligence, contribution velocity metrics, and applicant feasibility scoring for any public GitHub repository.
+
+## Architecture
+- Framework: Vite 5, React 18, TypeScript, Tailwind CSS
+- Data Ingestion:
+  - Single-request GraphQL pipeline (queries repo info, 100 recent PRs, review statuses, and author associations in 1 roundtrip)
+  - Throttled REST API fallback with GitHub Search API on-demand lookups
+- Multi-tier Caching:
+  - Memory-level LRU cache + Browser LocalStorage persistence with 10-minute TTL and stale-while-revalidate mechanics
+- Security:
+  - Content Security Policy (CSP), Subresource Integrity, Strict Transport Security (HSTS), Zero Tracking, Zero Third-Party Analytics
+- Licensing:
+  - Strict Protective Source License (SPSL-1.0)
+  - Attribution: Tarunya Kesharwani (@TarunyaProgrammer)

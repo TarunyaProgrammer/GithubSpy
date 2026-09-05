@@ -238,9 +238,9 @@ export function App() {
             <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 rounded-2xl bg-[#EFECE6] flex items-center justify-center text-[#787571]">
               <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <h3 className="text-base sm:text-lg font-display font-bold text-[#161514]">
+            <h2 className="text-base sm:text-lg font-display font-bold text-[#161514]">
               Start by checking a GitHub project
-            </h3>
+            </h2>
             <p className="mt-1.5 text-xs text-[#787571] max-w-sm mx-auto font-sans leading-relaxed">
               Paste a public GitHub project link above. We’ll show how contributions move through the project and who is active there.
             </p>

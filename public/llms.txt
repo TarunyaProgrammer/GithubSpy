@@ -1,0 +1,17 @@
+# GithubSpy
+> Maintainer intelligence and pull request turnaround analytics for public GitHub repositories.
+
+GithubSpy is a privacy-first web application enabling developers, applicants, and open-source contenders to analyze repository health, maintainer responsiveness, review turnaround velocity, and active contributors before submitting contributions.
+
+## Core Capabilities
+- In-depth telemetry on PR merge pace, resolution times, and review backlogs
+- Complete all-time contributor rosters with accurate commit/PR metrics
+- Applicant Feasibility Index (AFI) classifying project responsiveness
+- Atomic single-request GraphQL engine with multi-tier client-side caching
+- Zero tracking, 100% client-side execution, protected under SPSL-1.0
+
+## Official Documentation & Source
+- Web App: https://githubspy.vercel.app/
+- Repository: https://github.com/TarunyaProgrammer/GithubSpy
+- License: https://github.com/TarunyaProgrammer/GithubSpy/blob/main/LICENSE
+- Author: Tarunya Kesharwani (@TarunyaProgrammer)
