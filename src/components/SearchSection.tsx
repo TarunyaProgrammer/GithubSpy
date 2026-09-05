@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Loader2, ArrowRight, Sparkles, X } from 'lucide-react';
+import { parseGitHubUrl } from '../services/github';
 import type { TimeFilter } from '../types';
 
 interface SearchSectionProps {
@@ -38,10 +39,27 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
 }) => {
   const [inputVal, setInputVal] = useState(initialQuery);
 
+  useEffect(() => {
+    if (initialQuery) {
+      const parsed = parseGitHubUrl(initialQuery);
+      setInputVal(parsed ? `${parsed.owner}/${parsed.repo}` : initialQuery);
+    }
+  }, [initialQuery]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputVal.trim()) return;
-    onSearch(inputVal.trim(), timeFilter);
+    const trimmed = inputVal.trim();
+    if (!trimmed) return;
+
+    // Automatically sanitize and clean the input display
+    const parsed = parseGitHubUrl(trimmed);
+    if (parsed) {
+      const cleanFullName = `${parsed.owner}/${parsed.repo}`;
+      setInputVal(cleanFullName);
+      onSearch(cleanFullName, timeFilter);
+    } else {
+      onSearch(trimmed, timeFilter);
+    }
   };
 
   const handlePresetClick = (val: string) => {

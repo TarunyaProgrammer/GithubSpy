@@ -49,30 +49,46 @@ function notifyRateLimit(headers: Headers, isAuthenticated: boolean) {
 }
 
 /**
- * Cleanly parse any format of GitHub repository input.
+ * Cleanly parse and sanitize any format of GitHub repository input.
+ * Strips query parameters (?tab=...), hash fragments (#readme),
+ * deep subpaths (/pulls, /tree/main), SSH protocols, and .git extensions.
  */
 export function parseGitHubUrl(input: string): { owner: string; repo: string } | null {
   if (!input) return null;
   let raw = input.trim();
 
-  // Strip trailing slashes and .git
-  raw = raw.replace(/\.git\/?$/, '').replace(/\/+$/, '');
+  // 1. Strip query parameters (?tab=...) and hash fragments (#readme)
+  raw = raw.split('#')[0].split('?')[0].trim();
 
-  // Case 1: owner/repo
-  if (/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(raw)) {
-    const [owner, repo] = raw.split('/');
-    return { owner, repo };
+  // 2. Strip SSH clone prefix (git@github.com:)
+  if (raw.toLowerCase().startsWith('git@github.com:')) {
+    raw = raw.substring('git@github.com:'.length);
   }
 
-  // Case 2: Strip protocol and domain
+  // 3. Strip web protocol and domain variations
   raw = raw.replace(/^(https?:\/\/)?(www\.)?github\.com\//i, '');
+
+  // 4. Strip trailing .git and slashes
+  while (raw.endsWith('/') || raw.endsWith('.git')) {
+    if (raw.endsWith('.git')) {
+      raw = raw.slice(0, -4);
+    }
+    if (raw.endsWith('/')) {
+      raw = raw.slice(0, -1);
+    }
+  }
+
+  // 5. Extract owner and repository from path segments
   const parts = raw.split('/').filter(Boolean);
 
   if (parts.length >= 2) {
-    return {
-      owner: parts[0],
-      repo: parts[1],
-    };
+    const owner = parts[0].trim();
+    const repo = parts[1].replace(/\.git$/i, '').trim();
+
+    // Verify valid GitHub username and repository characters
+    if (/^[A-Za-z0-9_.-]+$/.test(owner) && /^[A-Za-z0-9_.-]+$/.test(repo)) {
+      return { owner, repo };
+    }
   }
 
   return null;

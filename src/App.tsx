@@ -15,6 +15,7 @@ import {
   fetchUserStats,
   onRateLimitUpdate,
   checkCurrentRateLimit,
+  parseGitHubUrl,
 } from './services/github';
 import { hasPersonalToken } from './services/token';
 import type { RepoStats, UserStats, TimeFilter, RateLimitInfo } from './types';
@@ -23,7 +24,7 @@ import { AlertCircle, RefreshCw, KeyRound, Loader2, Zap } from 'lucide-react';
 export function App() {
   const [stats, setStats] = useState<RepoStats | null>(null);
   const [loading, setLoading] = useState(false);
-  const [loadingProgress, setLoadingProgress] = useState('');
+  const [loadingProgress, setLoadingProgress] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('1m');
   const [currentQuery, setCurrentQuery] = useState('');
@@ -56,7 +57,9 @@ export function App() {
     async (repoQuery: string, filter: TimeFilter) => {
       if (!repoQuery.trim()) return;
 
-      setCurrentQuery(repoQuery);
+      const parsed = parseGitHubUrl(repoQuery);
+      const cleanName = parsed ? `${parsed.owner}/${parsed.repo}` : repoQuery.trim();
+      setCurrentQuery(cleanName);
       setTimeFilter(filter);
       setLoading(true);
       setError(null);
