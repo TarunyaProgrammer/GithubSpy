@@ -16,6 +16,7 @@ import {
   parseGitHubUrl,
 } from './services/github';
 import { hasPersonalToken } from './services/token';
+import { addRecentRepo } from './services/history';
 import type { RepoStats, UserStats, TimeFilter, RateLimitInfo } from './types';
 import { AlertCircle, RefreshCw, KeyRound, Loader2, Zap } from 'lucide-react';
 
@@ -68,6 +69,7 @@ export function App() {
           setLoadingProgress(msg);
         });
         setStats(result);
+        addRecentRepo(result.fullName);
         setLoadingProgress('');
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to analyze repository');

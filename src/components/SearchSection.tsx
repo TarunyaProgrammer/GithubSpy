@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Loader2, ArrowRight, Sparkles, X } from 'lucide-react';
+import { Search, Loader2, ArrowRight, Sparkles, X, History, Trash2, Check } from 'lucide-react';
 import { parseGitHubUrl } from '../services/github';
+import { getRecentRepos, addRecentRepo, clearLocalStorageAndHistory } from '../services/history';
 import type { TimeFilter } from '../types';
 
 interface SearchSectionProps {
@@ -38,11 +39,19 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
   onTimeFilterChange,
 }) => {
   const [inputVal, setInputVal] = useState(initialQuery);
+  const [recentRepos, setRecentRepos] = useState<string[]>([]);
+  const [clearingStorage, setClearingStorage] = useState(false);
+
+  useEffect(() => {
+    setRecentRepos(getRecentRepos());
+  }, []);
 
   useEffect(() => {
     if (initialQuery) {
       const parsed = parseGitHubUrl(initialQuery);
-      setInputVal(parsed ? `${parsed.owner}/${parsed.repo}` : initialQuery);
+      const clean = parsed ? `${parsed.owner}/${parsed.repo}` : initialQuery;
+      setInputVal(clean);
+      setRecentRepos(getRecentRepos());
     }
   }, [initialQuery]);
 
@@ -53,18 +62,34 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
 
     // Automatically sanitize and clean the input display
     const parsed = parseGitHubUrl(trimmed);
-    if (parsed) {
-      const cleanFullName = `${parsed.owner}/${parsed.repo}`;
-      setInputVal(cleanFullName);
-      onSearch(cleanFullName, timeFilter);
-    } else {
-      onSearch(trimmed, timeFilter);
-    }
+    const cleanFullName = parsed ? `${parsed.owner}/${parsed.repo}` : trimmed;
+    setInputVal(cleanFullName);
+    const updated = addRecentRepo(cleanFullName);
+    setRecentRepos(updated);
+    onSearch(cleanFullName, timeFilter);
   };
 
   const handlePresetClick = (val: string) => {
     setInputVal(val);
+    const updated = addRecentRepo(val);
+    setRecentRepos(updated);
     onSearch(val, timeFilter);
+  };
+
+  const handleRecentClick = (val: string) => {
+    setInputVal(val);
+    const updated = addRecentRepo(val);
+    setRecentRepos(updated);
+    onSearch(val, timeFilter);
+  };
+
+  const handleClearStorage = () => {
+    clearLocalStorageAndHistory();
+    setRecentRepos([]);
+    setClearingStorage(true);
+    setTimeout(() => {
+      setClearingStorage(false);
+    }, 2200);
   };
 
   return (
@@ -180,6 +205,57 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
               ))}
             </div>
           </div>
+        </div>
+
+        {/* Recent Repositories Strip (Max 5) & Intuitive Storage Purge Button */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2 px-1 text-xs border-t border-[#E5E0D8]/60 mt-1">
+          <div className="flex items-center gap-1.5 flex-wrap justify-center sm:justify-start">
+            <span className="text-[#787571] flex items-center gap-1 text-[11px] font-medium flex-shrink-0">
+              <History className="w-3.5 h-3.5 text-[#EAA036] flex-shrink-0" /> Recent:
+            </span>
+            {recentRepos.length > 0 ? (
+              recentRepos.map((repo) => (
+                <button
+                  key={repo}
+                  type="button"
+                  onClick={() => handleRecentClick(repo)}
+                  disabled={loading}
+                  className="px-2.5 py-0.5 rounded-lg bg-white border border-[#E5E0D8] text-[#161514] hover:border-[#EAA036] hover:text-[#9E6212] font-mono text-[11px] transition-all shadow-2xs active:scale-95 cursor-pointer"
+                  title={`Inspect ${repo}`}
+                >
+                  {repo}
+                </button>
+              ))
+            ) : (
+              <span className="text-[11px] font-mono text-[#8F8B83] italic">
+                Past repositories appear here (last 5 kept in local storage)
+              </span>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleClearStorage}
+            disabled={clearingStorage}
+            className={`flex items-center gap-1.5 text-[11px] font-mono px-2 py-1 rounded-lg transition-all flex-shrink-0 cursor-pointer border ${
+              clearingStorage
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                : 'text-[#787571] hover:text-rose-700 hover:bg-rose-50 border-transparent hover:border-rose-200'
+            }`}
+            title="Clear stored recent URLs and cached responses from browser storage whenever the site feels heavy"
+          >
+            {clearingStorage ? (
+              <>
+                <Check className="w-3 h-3 text-emerald-600 flex-shrink-0" />
+                <span className="text-emerald-700 font-sans font-medium">Storage Cleared</span>
+              </>
+            ) : (
+              <>
+                <Trash2 className="w-3 h-3 flex-shrink-0" />
+                <span>Clear storage</span>
+              </>
+            )}
+          </button>
         </div>
 
         {/* Loading status text */}
