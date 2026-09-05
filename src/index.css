@@ -2,19 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Local font bindings for Freight Big Pro & Futura PT */
+@font-face {
+  font-family: 'Freight Big Pro';
+  font-style: normal;
+  font-weight: 500 800;
+  font-display: swap;
+  src: local('Freight Big Pro'), local('FreightBigPro'), local('Freight Big Pro Book'), local('FreightBigPro-Book');
+}
+
+@font-face {
+  font-family: 'Futura PT';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: local('Futura PT'), local('FuturaPT-Book'), local('Futura PT Book'), local('Futura');
+}
+
 @layer base {
   body {
-    @apply antialiased font-sans transition-colors duration-200;
+    @apply antialiased font-sans transition-colors duration-200 overflow-x-hidden;
+    font-family: 'Futura PT', 'Futura', 'Plus Jakarta Sans', -apple-system, sans-serif;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-display tracking-tight;
+  h1, h2, h3, h4 {
+    font-family: 'Freight Big Pro', 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+    letter-spacing: -0.02em;
   }
 
   /* Accessible WCAG focus-visible rings */
   :focus-visible {
     @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-white dark:ring-offset-obsidian-950;
   }
+}
+
+/* Hide scrollbar for clean horizontal swipe containers on mobile */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Luxury micro-scrollbars */

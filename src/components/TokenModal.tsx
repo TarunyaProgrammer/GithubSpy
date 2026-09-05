@@ -76,24 +76,24 @@ export const TokenModal: React.FC<TokenModalProps> = ({ isOpen, onClose, onToken
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs animate-fade-in"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="token-modal-title"
     >
       <div
-        className="w-full max-w-lg bg-white dark:bg-obsidian-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl overflow-hidden p-6 space-y-4"
+        className="w-full max-w-lg bg-white dark:bg-obsidian-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl overflow-hidden p-4 sm:p-6 space-y-3.5 sm:space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Title */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-champagne-500/15 text-champagne-500">
-              <KeyRound className="w-5 h-5" />
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="p-2 sm:p-2.5 rounded-2xl bg-champagne-500/15 text-champagne-500 flex-shrink-0">
+              <KeyRound className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <h3 id="token-modal-title" className="text-lg font-display font-bold text-zinc-900 dark:text-white">
+              <h3 id="token-modal-title" className="text-base sm:text-lg font-serif font-bold text-zinc-900 dark:text-white">
                 GitHub API Rate Limit & Token
               </h3>
               <p className="text-xs text-zinc-500 font-sans">
@@ -104,22 +104,23 @@ export const TokenModal: React.FC<TokenModalProps> = ({ isOpen, onClose, onToken
           <button
             onClick={onClose}
             aria-label="Close token modal"
-            className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex-shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Current status pill */}
-        <div className="p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-700/60 flex items-center justify-between text-xs font-mono">
-          <div className="flex items-center gap-2">
+        <div className="p-3 sm:p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-700/60 flex items-center justify-between text-xs font-mono">
+          <div className="flex items-center gap-1.5 sm:gap-2 truncate mr-2">
             <span className="text-zinc-500">Status:</span>
             {isSaved ? (
-              <span className="text-brand-600 dark:text-brand-400 font-semibold flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> 5,000 req/hr (Personal PAT active)
+              <span className="text-brand-600 dark:text-brand-400 font-semibold flex items-center gap-1 truncate">
+                <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">5,000 req/hr Active</span>
               </span>
             ) : (
-              <span className="text-zinc-700 dark:text-zinc-300">
+              <span className="text-zinc-700 dark:text-zinc-300 truncate">
                 Standard quota mode
               </span>
             )}
@@ -128,7 +129,7 @@ export const TokenModal: React.FC<TokenModalProps> = ({ isOpen, onClose, onToken
             <button
               type="button"
               onClick={handleRemove}
-              className="text-red-500 hover:text-red-600 flex items-center gap-1 hover:underline"
+              className="text-red-500 hover:text-red-600 flex items-center gap-1 hover:underline flex-shrink-0"
             >
               <Trash2 className="w-3.5 h-3.5" /> Remove
             </button>
@@ -170,12 +171,12 @@ export const TokenModal: React.FC<TokenModalProps> = ({ isOpen, onClose, onToken
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1">
             <a
               href="https://github.com/settings/tokens/new?description=GithubSpy&scopes=public_repo"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 font-mono"
+              className="text-xs text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 font-mono justify-center sm:justify-start py-1"
             >
               <span>Generate token on GitHub</span>
               <ExternalLink className="w-3 h-3" />
@@ -184,7 +185,7 @@ export const TokenModal: React.FC<TokenModalProps> = ({ isOpen, onClose, onToken
             <button
               type="submit"
               disabled={isTesting || !tokenInput.trim()}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-600 text-white text-xs font-semibold shadow-md shadow-brand-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-600 text-white text-xs font-semibold shadow-md shadow-brand-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
             >
               {isTesting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               <span>{isTesting ? 'Verifying...' : 'Save & Verify'}</span>
@@ -195,7 +196,7 @@ export const TokenModal: React.FC<TokenModalProps> = ({ isOpen, onClose, onToken
         {/* Security Note */}
         <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 text-[11px] text-zinc-500 space-y-1">
           <p>
-            🔒 <strong>100% Client-Side:</strong> Stored locally on your device in browser localStorage and dispatched only to GitHub's official API (<code className="font-mono">api.github.com</code>).
+            🔒 <strong>100% Client-Side:</strong> Stored locally in your browser's localStorage and dispatched directly only to GitHub's official API (<code className="font-mono">api.github.com</code>).
           </p>
         </div>
       </div>

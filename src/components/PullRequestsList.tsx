@@ -23,29 +23,29 @@ export const PullRequestsList: React.FC<PullRequestsListProps> = ({ pullRequests
   });
 
   return (
-    <div className="w-full my-6 bg-white dark:bg-obsidian-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 overflow-hidden shadow-xs">
+    <div className="w-full my-4 sm:my-6 bg-white dark:bg-obsidian-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800 overflow-hidden shadow-xs">
       {/* Accordion Header */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
-        className="w-full px-5 py-4 flex items-center justify-between hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors text-left focus:outline-none focus-visible:bg-zinc-50 dark:focus-visible:bg-zinc-800/60"
+        className="w-full px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors text-left focus:outline-none focus-visible:bg-zinc-50 dark:focus-visible:bg-zinc-800/60"
       >
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="p-1.5 sm:p-2 rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400 flex-shrink-0">
             <GitPullRequest className="w-4 h-4" />
           </div>
-          <div>
-            <h3 className="text-base font-display font-bold text-zinc-900 dark:text-white">
+          <div className="min-w-0">
+            <h3 className="text-base sm:text-lg md:text-xl font-serif font-bold text-zinc-900 dark:text-white truncate">
               Recent Pull Requests ({pullRequests.length})
             </h3>
-            <p className="text-xs text-zinc-500 font-sans">
+            <p className="text-[11px] sm:text-xs text-zinc-500 font-sans truncate">
               Browse individual submissions, merge outcomes, and author links.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-zinc-400">
+        <div className="flex items-center gap-1.5 sm:gap-2 text-zinc-400 flex-shrink-0 ml-2">
           <span className="text-xs font-mono hidden sm:inline">
             {isOpen ? 'Collapse' : 'Expand list'}
           </span>
@@ -55,9 +55,9 @@ export const PullRequestsList: React.FC<PullRequestsListProps> = ({ pullRequests
 
       {/* Accordion Content */}
       {isOpen && (
-        <div className="border-t border-zinc-200/80 dark:border-zinc-800 p-5 space-y-4">
+        <div className="border-t border-zinc-200/80 dark:border-zinc-800 p-3.5 sm:p-6 space-y-3 sm:space-y-4">
           {/* Quick Filter */}
-          <div className="relative max-w-sm">
+          <div className="relative max-w-sm w-full">
             <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -69,15 +69,15 @@ export const PullRequestsList: React.FC<PullRequestsListProps> = ({ pullRequests
             />
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          {/* Table Container - Mobile-Safe Horizontal Scroll */}
+          <div className="overflow-x-auto -mx-3.5 sm:mx-0 px-3.5 sm:px-0">
+            <table className="w-full text-left text-xs min-w-[500px] sm:min-w-full">
               <thead className="bg-zinc-50 dark:bg-zinc-800/60 text-zinc-500 dark:text-zinc-400 font-mono uppercase text-[10px]">
                 <tr>
-                  <th scope="col" className="px-3 py-2 rounded-l-lg">Status</th>
+                  <th scope="col" className="px-3 py-2 rounded-l-lg whitespace-nowrap">Status</th>
                   <th scope="col" className="px-3 py-2">Pull Request</th>
-                  <th scope="col" className="px-3 py-2">Author</th>
-                  <th scope="col" className="px-3 py-2 rounded-r-lg">Created</th>
+                  <th scope="col" className="px-3 py-2 whitespace-nowrap">Author</th>
+                  <th scope="col" className="px-3 py-2 rounded-r-lg whitespace-nowrap">Created</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -111,17 +111,17 @@ export const PullRequestsList: React.FC<PullRequestsListProps> = ({ pullRequests
                       </td>
 
                       {/* Title & Link */}
-                      <td className="px-3 py-3 max-w-md">
+                      <td className="px-3 py-3 max-w-xs sm:max-w-md">
                         <a
                           href={pr.html_url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="font-medium text-zinc-900 dark:text-white hover:text-brand-500 hover:underline flex items-start gap-1"
                         >
-                          <span className="line-clamp-1">{pr.title}</span>
+                          <span className="line-clamp-2 sm:line-clamp-1">{pr.title}</span>
                           <ExternalLink className="w-3 h-3 mt-0.5 flex-shrink-0 text-zinc-400" />
                         </a>
-                        <span className="text-[11px] text-zinc-400 font-mono">
+                        <span className="text-[10px] sm:text-[11px] text-zinc-400 font-mono">
                           #{pr.number}
                         </span>
                       </td>
@@ -131,19 +131,19 @@ export const PullRequestsList: React.FC<PullRequestsListProps> = ({ pullRequests
                         <button
                           type="button"
                           onClick={() => onSelectUser(pr.user.login)}
-                          className="flex items-center gap-1.5 hover:text-brand-500 transition-colors font-mono focus:outline-none focus-visible:underline"
+                          className="flex items-center gap-1.5 hover:text-brand-500 transition-colors font-mono focus:outline-none focus-visible:underline text-xs"
                         >
                           <img
                             src={pr.user.avatar_url}
                             alt=""
-                            className="w-4 h-4 rounded-full"
+                            className="w-4 h-4 rounded-full flex-shrink-0"
                           />
-                          <span>{pr.user.login}</span>
+                          <span className="truncate max-w-[100px] sm:max-w-none">{pr.user.login}</span>
                         </button>
                       </td>
 
                       {/* Date */}
-                      <td className="px-3 py-3 whitespace-nowrap text-zinc-500 font-mono text-[11px]">
+                      <td className="px-3 py-3 whitespace-nowrap text-zinc-500 font-mono text-[10px] sm:text-[11px]">
                         {format(parseISO(pr.created_at), 'MMM d, yyyy')}
                       </td>
                     </tr>
