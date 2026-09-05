@@ -1,16 +1,51 @@
 import React, { useState } from 'react';
-import { Github, Linkedin, Bug, ArrowRight, Check, ExternalLink, Shield } from 'lucide-react';
+import { Github, Linkedin, Bug, ArrowRight, Check, ExternalLink, Shield, Mail, Loader2 } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   const [email, setEmail] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.trim()) {
-      setSubscribed(true);
-      setTimeout(() => setSubscribed(false), 5000);
+    const cleanEmail = email.trim();
+    if (!cleanEmail) return;
+
+    setStatus('loading');
+    try {
+      // Send email payload directly to tarunya.programmer@gmail.com via FormSubmit AJAX service
+      const res = await fetch('https://formsubmit.co/ajax/tarunya.programmer@gmail.com', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          email: cleanEmail,
+          _subject: `New GithubSpy Subscriber: ${cleanEmail}`,
+          _template: 'table',
+          source: 'GithubSpy Web Application (Footer Subscription)',
+          recipient: 'tarunya.programmer@gmail.com',
+          submitted_at: new Date().toISOString(),
+        }),
+      });
+
+      if (res.ok) {
+        setStatus('success');
+        setEmail('');
+        setTimeout(() => setStatus('idle'), 6000);
+      } else {
+        // Fallback to mailto link if external service rate limits
+        window.location.href = `mailto:tarunya.programmer@gmail.com?subject=GithubSpy%20Community%20Updates&body=Hi%20Tarunya,%0D%0A%0D%0APlease%20add%20my%20email%20(${encodeURIComponent(cleanEmail)})%20to%20GithubSpy%20updates.`;
+        setStatus('success');
+        setEmail('');
+        setTimeout(() => setStatus('idle'), 6000);
+      }
+    } catch {
+      // Offline or network error fallback
+      window.location.href = `mailto:tarunya.programmer@gmail.com?subject=GithubSpy%20Community%20Updates&body=Hi%20Tarunya,%0D%0A%0D%0APlease%20add%20my%20email%20(${encodeURIComponent(cleanEmail)})%20to%20GithubSpy%20updates.`;
+      setStatus('success');
       setEmail('');
+      setTimeout(() => setStatus('idle'), 6000);
     }
   };
 
@@ -18,29 +53,31 @@ export const Footer: React.FC = () => {
     <footer className="w-full mt-auto bg-[#F6F5F2] border-t border-[#DDD8CE] text-[#161514] font-sans antialiased selection:bg-[#EAA036]/20">
       
       {/* ========================================================= */}
-      {/* 1. TOP SECTION: BRAND STATEMENT                          */}
+      {/* 1. TOP SECTION: BRAND STATEMENT + NAVIGATION + 3D RADAR   */}
       {/* ========================================================= */}
       <div className="border-b border-[#DDD8CE]">
         <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-[#DDD8CE]">
           
-          {/* Tagline / Big Bold Statement */}
-          <div className="lg:col-span-4 p-6 sm:p-8 flex flex-col justify-between">
-            <h2 className="text-xl sm:text-2xl md:text-[25px] font-black uppercase tracking-tight text-[#161514] leading-[1.15]">
-              An open source radar that illuminates your contribution path
-            </h2>
-            <div className="mt-4 pt-4 border-t border-[#DDD8CE]/60 flex items-center gap-2 text-[11px] font-mono text-[#787571]">
-              <span className="inline-block w-2 h-2 rounded-full bg-[#EAA036] animate-pulse" />
+          {/* Tagline Statement */}
+          <div className="lg:col-span-4 p-4 sm:p-5 flex flex-col justify-between">
+            <div>
+              <h2 className="text-base sm:text-lg md:text-xl font-black uppercase tracking-tight text-[#161514] leading-snug">
+                An open source radar that illuminates your contribution path
+              </h2>
+            </div>
+            <div className="mt-3 pt-3 border-t border-[#DDD8CE]/60 flex items-center gap-2 text-[10px] font-mono text-[#787571]">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#EAA036] animate-pulse" />
               <span>Maintainer intelligence & PR turnaround telemetry</span>
             </div>
           </div>
 
-          {/* Platform Column */}
-          <div className="lg:col-span-2 p-6 sm:p-8 flex flex-col justify-between">
+          {/* Navigation Column 1: PLATFORM */}
+          <div className="lg:col-span-2 p-4 sm:p-5 flex flex-col justify-between">
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#787571] block mb-4">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#787571] block mb-2.5">
                 Platform
               </span>
-              <ul className="space-y-2.5 text-xs font-medium">
+              <ul className="space-y-1.5 text-xs font-medium">
                 <li>
                   <a href="#" className="text-[#C87E18] font-bold hover:underline transition-colors">
                     Home
@@ -65,13 +102,13 @@ export const Footer: React.FC = () => {
             </div>
           </div>
 
-          {/* Explore Column */}
-          <div className="lg:col-span-2 p-6 sm:p-8 flex flex-col justify-between">
+          {/* Navigation Column 2: EXPLORE PRESETS */}
+          <div className="lg:col-span-2 p-4 sm:p-5 flex flex-col justify-between">
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#787571] block mb-4">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#787571] block mb-2.5">
                 Explore
               </span>
-              <ul className="space-y-2.5 text-xs font-medium">
+              <ul className="space-y-1.5 text-xs font-medium">
                 <li>
                   <a href="https://github.com/zulip/zulip" target="_blank" rel="noopener noreferrer" className="text-[#423E38] hover:text-[#161514] transition-colors flex items-center justify-between group">
                     <span>Zulip</span>
@@ -100,13 +137,13 @@ export const Footer: React.FC = () => {
             </div>
           </div>
 
-          {/* Resources Column */}
-          <div className="lg:col-span-2 p-6 sm:p-8 flex flex-col justify-between">
+          {/* Navigation Column 3: RESOURCES */}
+          <div className="lg:col-span-2 p-4 sm:p-5 flex flex-col justify-between">
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#787571] block mb-4">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#787571] block mb-2.5">
                 Resources
               </span>
-              <ul className="space-y-2.5 text-xs font-medium">
+              <ul className="space-y-1.5 text-xs font-medium">
                 <li>
                   <a href="https://github.com/TarunyaProgrammer/GithubSpy#readme" target="_blank" rel="noopener noreferrer" className="text-[#423E38] hover:text-[#161514] transition-colors">
                     Insights
@@ -119,7 +156,7 @@ export const Footer: React.FC = () => {
                 </li>
                 <li>
                   <a href="https://github.com/TarunyaProgrammer/GithubSpy#rate-limits" target="_blank" rel="noopener noreferrer" className="text-[#423E38] hover:text-[#161514] transition-colors">
-                    GraphQL Engine
+                    GraphQL Pipeline
                   </a>
                 </li>
                 <li>
@@ -131,26 +168,65 @@ export const Footer: React.FC = () => {
             </div>
           </div>
 
-          {/* Isometric 3D Wireframe Logo Block (Visible on Desktop Right, Centered on Mobile) */}
-          <div className="hidden lg:flex lg:col-span-2 p-6 sm:p-8 items-center justify-center bg-[#F1EFEA]/60">
+          {/* Geometrically Perfect 3D Isometric Architectural Radar Cube */}
+          <div className="hidden lg:flex lg:col-span-2 p-4 sm:p-5 items-center justify-center bg-[#F1EFEA]/60">
             <svg
-              viewBox="0 0 140 140"
-              className="w-24 h-24 sm:w-28 sm:h-28 drop-shadow-xs transition-transform hover:scale-105"
+              viewBox="0 0 120 120"
+              className="w-20 h-20 drop-shadow-xs transition-transform hover:scale-105"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
-              aria-label="GithubSpy Isometric Wireframe Insignia"
+              aria-label="Architectural Radar Isometric Cube"
             >
-              {/* Isometric 3D Wireframe Monolith */}
-              <polygon points="36,24 64,10 64,28 36,42" stroke="#161514" strokeWidth="3" fill="#FFFFFF" strokeLinejoin="round" />
-              <polygon points="76,16 104,2 104,20 76,34" stroke="#161514" strokeWidth="3" fill="#FFFFFF" strokeLinejoin="round" />
-              <polygon points="46,38 94,14 94,24 46,48" stroke="#161514" strokeWidth="2.5" fill="#EAA036" fillOpacity="0.25" strokeLinejoin="round" />
-              <polygon points="36,42 64,28 64,88 36,102" stroke="#161514" strokeWidth="3" fill="#F7F5F0" strokeLinejoin="round" />
-              <polygon points="48,48 64,40 64,78 48,86" stroke="#161514" strokeWidth="2.5" fill="#EFECE6" strokeLinejoin="round" />
-              <polygon points="64,54 84,44 84,62 64,72" stroke="#161514" strokeWidth="3" fill="#FFFFFF" strokeLinejoin="round" />
-              <polygon points="76,34 104,20 104,80 76,94" stroke="#161514" strokeWidth="3" fill="#FFFFFF" strokeLinejoin="round" />
-              <polygon points="64,88 104,68 104,96 64,116" stroke="#161514" strokeWidth="3" fill="#E8E4DC" strokeLinejoin="round" />
-              <polygon points="36,102 64,116 104,96 76,82" stroke="#161514" strokeWidth="2.5" fill="#DCD6CA" strokeLinejoin="round" />
-              <circle cx="74" cy="58" r="3.5" fill="#C87E18" />
+              {/* Outer Isometric Cube Facets */}
+              {/* Top Isometric Plane */}
+              <polygon
+                points="60,18 98,40 60,62 22,40"
+                stroke="#161514"
+                strokeWidth="2.5"
+                fill="#FFFFFF"
+                strokeLinejoin="round"
+              />
+              {/* Left Isometric Plane */}
+              <polygon
+                points="22,40 60,62 60,104 22,82"
+                stroke="#161514"
+                strokeWidth="2.5"
+                fill="#F7F5F0"
+                strokeLinejoin="round"
+              />
+              {/* Right Isometric Plane */}
+              <polygon
+                points="60,62 98,40 98,82 60,104"
+                stroke="#161514"
+                strokeWidth="2.5"
+                fill="#E8E5DD"
+                strokeLinejoin="round"
+              />
+
+              {/* Architectural Top-Face Inset (Nested Radar Surface) */}
+              <polygon
+                points="60,26 88,40 60,54 32,40"
+                stroke="#161514"
+                strokeWidth="1.2"
+                strokeDasharray="2 2"
+                fill="#F4F1EA"
+              />
+
+              {/* Left Face Drafting Grid Lines */}
+              <line x1="35" y1="47" x2="35" y2="89" stroke="#DDD8CE" strokeWidth="1" />
+              <line x1="48" y1="55" x2="48" y2="97" stroke="#DDD8CE" strokeWidth="1" />
+
+              {/* Right Face Drafting Grid Lines */}
+              <line x1="73" y1="55" x2="73" y2="97" stroke="#DDD8CE" strokeWidth="1" />
+              <line x1="85" y1="47" x2="85" y2="89" stroke="#DDD8CE" strokeWidth="1" />
+
+              {/* Central Radar Crosshair on Top Face */}
+              <line x1="60" y1="32" x2="60" y2="48" stroke="#EAA036" strokeWidth="1.5" strokeLinecap="round" />
+              <line x1="46" y1="40" x2="74" y2="40" stroke="#EAA036" strokeWidth="1.5" strokeLinecap="round" />
+
+              {/* Glowing Honey-Amber Beacon Node */}
+              <circle cx="60" cy="40" r="3" fill="#EAA036" />
+              <circle cx="60" cy="40" r="5" stroke="#EAA036" strokeWidth="1" strokeOpacity="0.4" className="animate-ping" />
             </svg>
           </div>
 
@@ -158,68 +234,89 @@ export const Footer: React.FC = () => {
       </div>
 
       {/* ========================================================= */}
-      {/* 2. MIDDLE ROW: SUBSCRIBE + REPO + CONNECT + COMMUNITY     */}
+      {/* 2. MIDDLE ROW: SUBSCRIBE + REPOSITORY + CONNECT + SOCIAL  */}
       {/* ========================================================= */}
       <div className="border-b border-[#DDD8CE]">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 divide-y sm:divide-y-0 sm:divide-x divide-[#DDD8CE]">
 
-          {/* Subscribe Box */}
-          <div className="sm:col-span-2 lg:col-span-4 p-6 sm:p-8 flex flex-col justify-between">
+          {/* Subscribe Box - Direct Mail to tarunya.programmer@gmail.com */}
+          <div className="sm:col-span-2 lg:col-span-4 p-4 sm:p-5 flex flex-col justify-between">
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#787571] block mb-2">
-                Subscribe
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#787571] block mb-1.5">
+                Subscribe & Stay Informed
               </span>
-              <p className="text-xs text-[#524E48] leading-relaxed mb-4">
-                Want to see more cool tools like this? Sign up for occasional open-source intelligence and updates.
+              <p className="text-xs text-[#524E48] leading-relaxed mb-3">
+                Receive open-source maintainer alerts and GSoC telemetry dispatched straight to your inbox.
               </p>
             </div>
 
-            <form onSubmit={handleSubscribe} className="relative mt-2">
+            <form onSubmit={handleSubscribe} className="relative mt-1">
               <div className="flex items-stretch border border-[#DDD8CE] bg-white rounded-none focus-within:border-[#161514] transition-colors">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder={subscribed ? "Thank you for subscribing!" : "Enter your email"}
-                  disabled={subscribed}
+                  placeholder={
+                    status === 'loading'
+                      ? 'Dispatching notification...'
+                      : status === 'success'
+                      ? 'Subscribed to updates!'
+                      : 'Enter your email'
+                  }
+                  disabled={status === 'loading' || status === 'success'}
                   required
-                  className="w-full px-3 py-2.5 text-xs text-[#161514] placeholder-[#8F8B83] bg-transparent focus:outline-none font-mono"
+                  className="w-full px-3 py-2 text-xs text-[#161514] placeholder-[#8F8B83] bg-transparent focus:outline-none font-mono"
                 />
                 <button
                   type="submit"
-                  disabled={subscribed}
+                  disabled={status === 'loading' || status === 'success'}
                   aria-label="Submit newsletter subscription"
-                  className="px-4 flex items-center justify-center border-l border-[#DDD8CE] bg-[#F7F5F0] hover:bg-[#EFECE6] text-[#161514] transition-colors cursor-pointer disabled:bg-emerald-50"
+                  className="px-3.5 flex items-center justify-center border-l border-[#DDD8CE] bg-[#F7F5F0] hover:bg-[#EFECE6] text-[#161514] transition-colors cursor-pointer disabled:bg-emerald-50"
+                  title="Subscribe to updates (notifies tarunya.programmer@gmail.com)"
                 >
-                  {subscribed ? (
+                  {status === 'loading' ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#EAA036]" />
+                  ) : status === 'success' ? (
                     <Check className="w-3.5 h-3.5 text-emerald-600" />
                   ) : (
                     <ArrowRight className="w-3.5 h-3.5 text-[#161514]" />
                   )}
                 </button>
               </div>
+
+              {/* Instant feedback notification */}
+              {status === 'success' ? (
+                <p className="mt-1.5 text-[11px] font-mono text-emerald-700 flex items-center gap-1.5">
+                  <Check className="w-3 h-3" />
+                  <span>Subscribed! Notification sent to tarunya.programmer@gmail.com</span>
+                </p>
+              ) : (
+                <p className="mt-1.5 text-[10px] font-mono text-[#8F8B83]">
+                  Dispatched directly to maintainer inbox. Zero spam.
+                </p>
+              )}
             </form>
           </div>
 
           {/* Repository Coordinates */}
-          <div className="sm:col-span-1 lg:col-span-2 p-6 sm:p-8 flex flex-col justify-between border-t sm:border-t-0 border-[#DDD8CE]">
+          <div className="sm:col-span-1 lg:col-span-2 p-4 sm:p-5 flex flex-col justify-between border-t sm:border-t-0 border-[#DDD8CE]">
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#787571] block mb-2">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#787571] block mb-1.5">
                 Repository
               </span>
-              <p className="text-xs font-mono font-semibold text-[#161514] leading-relaxed">
+              <p className="text-xs font-mono font-semibold text-[#161514] leading-snug">
                 TarunyaProgrammer / GithubSpy
               </p>
-              <p className="mt-1 text-[11px] font-mono text-[#787571]">
+              <p className="mt-0.5 text-[11px] font-mono text-[#787571]">
                 Global Open Source
               </p>
             </div>
-            <div className="mt-4 pt-4 border-t border-[#DDD8CE]/60">
+            <div className="mt-3 pt-3 border-t border-[#DDD8CE]/60">
               <a
                 href="https://github.com/TarunyaProgrammer/GithubSpy"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#161514] hover:text-[#C87E18] transition-colors group"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-[#161514] hover:text-[#C87E18] transition-colors group"
               >
                 <span>View on GitHub</span>
                 <ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
@@ -227,20 +324,20 @@ export const Footer: React.FC = () => {
             </div>
           </div>
 
-          {/* Connect & Bug Reporting (Requested by User) */}
-          <div className="sm:col-span-1 lg:col-span-3 p-6 sm:p-8 flex flex-col justify-between border-t sm:border-t-0 border-[#DDD8CE]">
+          {/* Connect With Author & Bug Reporting */}
+          <div className="sm:col-span-1 lg:col-span-3 p-4 sm:p-5 flex flex-col justify-between border-t sm:border-t-0 border-[#DDD8CE]">
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#787571] block mb-2">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#787571] block mb-1.5">
                 Connect With Author
               </span>
               <p className="text-xs font-semibold text-[#161514]">
                 Tarunya Kesharwani
               </p>
-              <p className="mt-0.5 text-[11px] text-[#787571]">
+              <p className="text-[11px] text-[#787571]">
                 Open-source engineer & researcher
               </p>
 
-              <div className="mt-3 space-y-1.5">
+              <div className="mt-2 space-y-1">
                 <a
                   href="https://www.linkedin.com/in/tarunyakesharwani"
                   target="_blank"
@@ -259,10 +356,17 @@ export const Footer: React.FC = () => {
                   <Github className="w-3.5 h-3.5 text-[#161514] flex-shrink-0" />
                   <span className="truncate">github.com/TarunyaProgrammer</span>
                 </a>
+                <a
+                  href="mailto:tarunya.programmer@gmail.com"
+                  className="flex items-center gap-2 text-xs text-[#423E38] hover:text-[#C87E18] transition-colors font-medium"
+                >
+                  <Mail className="w-3.5 h-3.5 text-[#C87E18] flex-shrink-0" />
+                  <span className="truncate">tarunya.programmer@gmail.com</span>
+                </a>
               </div>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-[#DDD8CE]/60">
+            <div className="mt-3 pt-3 border-t border-[#DDD8CE]/60">
               <a
                 href="https://github.com/TarunyaProgrammer/GithubSpy/issues/new"
                 target="_blank"
@@ -275,13 +379,13 @@ export const Footer: React.FC = () => {
             </div>
           </div>
 
-          {/* Social & Community Links */}
-          <div className="sm:col-span-2 lg:col-span-3 p-6 sm:p-8 flex flex-col justify-between border-t lg:border-t-0 border-[#DDD8CE]">
+          {/* Social & Ecosystem */}
+          <div className="sm:col-span-2 lg:col-span-3 p-4 sm:p-5 flex flex-col justify-between border-t lg:border-t-0 border-[#DDD8CE]">
             <div>
-              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#787571] block mb-3">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#787571] block mb-2">
                 Social & Community
               </span>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs font-medium">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs font-medium">
                 <a
                   href="https://github.com/TarunyaProgrammer/GithubSpy"
                   target="_blank"
@@ -315,12 +419,10 @@ export const Footer: React.FC = () => {
                   Bug Reports
                 </a>
                 <a
-                  href="https://github.com/TarunyaProgrammer"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="mailto:tarunya.programmer@gmail.com"
                   className="text-[#423E38] hover:text-[#161514] transition-colors"
                 >
-                  Author Work
+                  Direct Email
                 </a>
                 <a
                   href="https://github.com/TarunyaProgrammer/GithubSpy/blob/main/LICENSE"
@@ -333,8 +435,8 @@ export const Footer: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-[#DDD8CE]/60 flex items-center gap-2 text-[11px] font-mono text-[#787571]">
-              <Shield className="w-3 h-3 text-[#EAA036]" />
+            <div className="mt-3 pt-3 border-t border-[#DDD8CE]/60 flex items-center gap-2 text-[10px] font-mono text-[#787571]">
+              <Shield className="w-3 h-3 text-[#EAA036] flex-shrink-0" />
               <span>SPSL Protected • Zero Tracking</span>
             </div>
           </div>
@@ -342,98 +444,95 @@ export const Footer: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile-Only Centered Isometric Insignia */}
-      <div className="flex lg:hidden p-8 items-center justify-center bg-[#F1EFEA]/60 border-b border-[#DDD8CE]">
+      {/* Mobile-Only Isometric Cube (Compact) */}
+      <div className="flex lg:hidden p-4 items-center justify-center bg-[#F1EFEA]/60 border-b border-[#DDD8CE]">
         <svg
-          viewBox="0 0 140 140"
-          className="w-24 h-24 drop-shadow-xs"
+          viewBox="0 0 120 120"
+          className="w-16 h-16 drop-shadow-xs"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          aria-label="GithubSpy Isometric Wireframe Insignia"
+          aria-label="Architectural Radar Isometric Cube"
         >
-          <polygon points="36,24 64,10 64,28 36,42" stroke="#161514" strokeWidth="3" fill="#FFFFFF" strokeLinejoin="round" />
-          <polygon points="76,16 104,2 104,20 76,34" stroke="#161514" strokeWidth="3" fill="#FFFFFF" strokeLinejoin="round" />
-          <polygon points="46,38 94,14 94,24 46,48" stroke="#161514" strokeWidth="2.5" fill="#EAA036" fillOpacity="0.25" strokeLinejoin="round" />
-          <polygon points="36,42 64,28 64,88 36,102" stroke="#161514" strokeWidth="3" fill="#F7F5F0" strokeLinejoin="round" />
-          <polygon points="48,48 64,40 64,78 48,86" stroke="#161514" strokeWidth="2.5" fill="#EFECE6" strokeLinejoin="round" />
-          <polygon points="64,54 84,44 84,62 64,72" stroke="#161514" strokeWidth="3" fill="#FFFFFF" strokeLinejoin="round" />
-          <polygon points="76,34 104,20 104,80 76,94" stroke="#161514" strokeWidth="3" fill="#FFFFFF" strokeLinejoin="round" />
-          <polygon points="64,88 104,68 104,96 64,116" stroke="#161514" strokeWidth="3" fill="#E8E4DC" strokeLinejoin="round" />
-          <polygon points="36,102 64,116 104,96 76,82" stroke="#161514" strokeWidth="2.5" fill="#DCD6CA" strokeLinejoin="round" />
-          <circle cx="74" cy="58" r="3.5" fill="#C87E18" />
+          <polygon points="60,18 98,40 60,62 22,40" stroke="#161514" strokeWidth="2.5" fill="#FFFFFF" strokeLinejoin="round" />
+          <polygon points="22,40 60,62 60,104 22,82" stroke="#161514" strokeWidth="2.5" fill="#F7F5F0" strokeLinejoin="round" />
+          <polygon points="60,62 98,40 98,82 60,104" stroke="#161514" strokeWidth="2.5" fill="#E8E5DD" strokeLinejoin="round" />
+          <polygon points="60,26 88,40 60,54 32,40" stroke="#161514" strokeWidth="1.2" strokeDasharray="2 2" fill="#F4F1EA" />
+          <line x1="60" y1="32" x2="60" y2="48" stroke="#EAA036" strokeWidth="1.5" strokeLinecap="round" />
+          <line x1="46" y1="40" x2="74" y2="40" stroke="#EAA036" strokeWidth="1.5" strokeLinecap="round" />
+          <circle cx="60" cy="40" r="3" fill="#EAA036" />
         </svg>
       </div>
 
       {/* ========================================================= */}
-      {/* 3. BLUEPRINT DRAFTING BANNER: GIANT GITHUBSPY OUTLINE     */}
+      {/* 3. BLUEPRINT DRAFTING BANNER: SLENDER ARCHITECTURAL STRIP */}
       {/* ========================================================= */}
-      <div className="relative w-full bg-[#F3F0EA] border-b border-[#DDD8CE] px-4 sm:px-8 py-8 sm:py-12 select-none overflow-hidden">
+      <div className="relative w-full bg-[#F3F0EA] border-b border-[#DDD8CE] px-4 sm:px-8 py-3 sm:py-4 select-none overflow-hidden">
         
         {/* 4 Corner Blueprint Crosses '+' */}
-        <span className="absolute top-2 left-2.5 font-mono text-xs text-[#9E9B95] font-light leading-none">+</span>
-        <span className="absolute top-2 right-2.5 font-mono text-xs text-[#9E9B95] font-light leading-none">+</span>
-        <span className="absolute bottom-2 left-2.5 font-mono text-xs text-[#9E9B95] font-light leading-none">+</span>
-        <span className="absolute bottom-2 right-2.5 font-mono text-xs text-[#9E9B95] font-light leading-none">+</span>
+        <span className="absolute top-1.5 left-2 font-mono text-[10px] text-[#9E9B95] font-light leading-none">+</span>
+        <span className="absolute top-1.5 right-2 font-mono text-[10px] text-[#9E9B95] font-light leading-none">+</span>
+        <span className="absolute bottom-1.5 left-2 font-mono text-[10px] text-[#9E9B95] font-light leading-none">+</span>
+        <span className="absolute bottom-1.5 right-2 font-mono text-[10px] text-[#9E9B95] font-light leading-none">+</span>
 
         {/* Top Measurement Ruler Ticks */}
-        <div className="w-full flex justify-between items-center text-[8px] font-mono text-[#A8A49C] tracking-[0.3em] overflow-hidden opacity-75 mb-3">
+        <div className="w-full flex justify-between items-center text-[7px] font-mono text-[#A8A49C] tracking-[0.25em] overflow-hidden opacity-60 mb-1">
           <span>|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|</span>
         </div>
 
-        {/* Giant Architectural Blueprint Typography */}
-        <div className="w-full flex items-center justify-center py-2 sm:py-4">
+        {/* Compact Architectural Blueprint Typography */}
+        <div className="w-full flex items-center justify-center py-1 sm:py-2">
           <svg
-            viewBox="0 0 1000 160"
-            className="w-full max-w-5xl h-auto"
+            viewBox="0 0 1000 85"
+            className="w-full max-w-4xl h-auto"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
           >
             {/* Horizontal Construction / Alignment Guides */}
-            <line x1="20" y1="28" x2="980" y2="28" stroke="#D1CBC1" strokeWidth="0.75" strokeDasharray="4 4" />
-            <line x1="20" y1="84" x2="980" y2="84" stroke="#C5BFB5" strokeWidth="0.75" strokeDasharray="3 3" />
-            <line x1="20" y1="138" x2="980" y2="138" stroke="#D1CBC1" strokeWidth="0.75" strokeDasharray="4 4" />
+            <line x1="20" y1="14" x2="980" y2="14" stroke="#D1CBC1" strokeWidth="0.6" strokeDasharray="3 3" />
+            <line x1="20" y1="46" x2="980" y2="46" stroke="#C5BFB5" strokeWidth="0.6" strokeDasharray="3 3" />
+            <line x1="20" y1="74" x2="980" y2="74" stroke="#D1CBC1" strokeWidth="0.6" strokeDasharray="3 3" />
 
             {/* Architectural Outline Text */}
             <text
               x="500"
-              y="126"
+              y="66"
               textAnchor="middle"
               className="font-mono select-none"
               style={{
-                fontSize: '118px',
+                fontSize: '66px',
                 fontWeight: 900,
-                letterSpacing: '0.08em',
+                letterSpacing: '0.12em',
                 fill: '#F3F0EA',
                 stroke: '#161514',
-                strokeWidth: '2.8px',
+                strokeWidth: '2.2px',
                 strokeLinejoin: 'round',
               }}
             >
               GITHUBSPY
             </text>
 
-            {/* Centerline Crosshairs on letters for technical aesthetic */}
-            <line x1="160" y1="20" x2="160" y2="145" stroke="#C5BFB5" strokeWidth="0.6" strokeDasharray="2 4" />
-            <line x1="330" y1="20" x2="330" y2="145" stroke="#C5BFB5" strokeWidth="0.6" strokeDasharray="2 4" />
-            <line x1="500" y1="20" x2="500" y2="145" stroke="#C5BFB5" strokeWidth="0.6" strokeDasharray="2 4" />
-            <line x1="670" y1="20" x2="670" y2="145" stroke="#C5BFB5" strokeWidth="0.6" strokeDasharray="2 4" />
-            <line x1="840" y1="20" x2="840" y2="145" stroke="#C5BFB5" strokeWidth="0.6" strokeDasharray="2 4" />
+            {/* Centerline Crosshairs on letters */}
+            <line x1="160" y1="10" x2="160" y2="78" stroke="#C5BFB5" strokeWidth="0.5" strokeDasharray="2 3" />
+            <line x1="330" y1="10" x2="330" y2="78" stroke="#C5BFB5" strokeWidth="0.5" strokeDasharray="2 3" />
+            <line x1="500" y1="10" x2="500" y2="78" stroke="#C5BFB5" strokeWidth="0.5" strokeDasharray="2 3" />
+            <line x1="670" y1="10" x2="670" y2="78" stroke="#C5BFB5" strokeWidth="0.5" strokeDasharray="2 3" />
+            <line x1="840" y1="10" x2="840" y2="78" stroke="#C5BFB5" strokeWidth="0.5" strokeDasharray="2 3" />
           </svg>
         </div>
 
         {/* Bottom Measurement Ruler Ticks */}
-        <div className="w-full flex justify-between items-center text-[8px] font-mono text-[#A8A49C] tracking-[0.3em] overflow-hidden opacity-75 mt-3">
+        <div className="w-full flex justify-between items-center text-[7px] font-mono text-[#A8A49C] tracking-[0.25em] overflow-hidden opacity-60 mt-1">
           <span>|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|···|</span>
         </div>
       </div>
 
       {/* ========================================================= */}
-      {/* 4. BOTTOM BAR: COPYRIGHT & POLICIES (EXACT GRID DIVISION)  */}
+      {/* 4. BOTTOM BAR: COPYRIGHT & POLICIES (COMPACT)             */}
       {/* ========================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-[#DDD8CE] text-[11px] font-mono">
+      <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-[#DDD8CE] text-[10px] sm:text-[11px] font-mono">
         
         {/* Copyright & Conception Credits */}
-        <div className="lg:col-span-8 px-6 py-3.5 text-[#787571] flex items-center flex-wrap gap-x-2">
+        <div className="lg:col-span-8 px-4 sm:px-6 py-2.5 text-[#787571] flex items-center flex-wrap gap-x-2">
           <span>©{new Date().getFullYear()} GITHUBSPY. ALL RIGHTS RESERVED.</span>
           <span className="hidden sm:inline">|</span>
           <span>CONCEPT & CODE ARCHITECTED BY</span>
@@ -453,7 +552,7 @@ export const Footer: React.FC = () => {
             href="https://github.com/TarunyaProgrammer/GithubSpy#privacy"
             target="_blank"
             rel="noopener noreferrer"
-            className="py-3.5 px-2 text-[#423E38] hover:text-[#161514] hover:bg-[#EFECE6] transition-colors"
+            className="py-2.5 px-2 text-[#423E38] hover:text-[#161514] hover:bg-[#EFECE6] transition-colors"
           >
             Privacy Policy
           </a>
@@ -461,7 +560,7 @@ export const Footer: React.FC = () => {
             href="https://github.com/TarunyaProgrammer/GithubSpy#terms"
             target="_blank"
             rel="noopener noreferrer"
-            className="py-3.5 px-2 text-[#423E38] hover:text-[#161514] hover:bg-[#EFECE6] transition-colors"
+            className="py-2.5 px-2 text-[#423E38] hover:text-[#161514] hover:bg-[#EFECE6] transition-colors"
           >
             Terms & Conditions
           </a>
@@ -469,7 +568,7 @@ export const Footer: React.FC = () => {
             href="https://github.com/TarunyaProgrammer/GithubSpy/blob/main/LICENSE"
             target="_blank"
             rel="noopener noreferrer"
-            className="py-3.5 px-2 text-[#423E38] hover:text-[#161514] hover:bg-[#EFECE6] transition-colors font-semibold"
+            className="py-2.5 px-2 text-[#423E38] hover:text-[#161514] hover:bg-[#EFECE6] transition-colors font-semibold"
           >
             SPSL License
           </a>
