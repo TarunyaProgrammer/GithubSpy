@@ -172,12 +172,31 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
           </div>
         </form>
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-3 pt-2 px-1">
-          <div className="w-full md:w-auto flex justify-center md:justify-start">
-            <div className="flex w-full flex-col items-center gap-1.5 sm:w-auto sm:flex-row sm:items-center">
-              <span className="text-[11px] font-medium text-[#787571] whitespace-nowrap">Show activity from</span>
-              <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-[#E5E0D8] bg-[#EFECE6] p-1 no-scrollbar" role="group" aria-label="Choose time period">
-                {TIME_FILTERS.map((f) => (
+        {/* Popular repository presets - Single continuous line */}
+        <div className="flex items-center justify-start sm:justify-center gap-2 pt-2.5 px-1 text-xs overflow-x-auto no-scrollbar" aria-label="Popular repository presets">
+          <span className="text-[#787571] flex items-center gap-1 text-[11px] sm:text-xs font-medium whitespace-nowrap flex-shrink-0">
+            <Sparkles className="w-3.5 h-3.5 text-[#EAA036] flex-shrink-0" /> Try an example:
+          </span>
+          <div className="flex items-center gap-1.5 flex-nowrap flex-shrink-0">
+            {PRESET_REPOS.map((preset) => (
+              <button
+                key={preset.value}
+                onClick={() => handlePresetClick(preset.value)}
+                disabled={loading}
+                className="px-2.5 py-1 rounded-lg bg-white border border-[#E5E0D8] text-[#423E38] hover:border-[#EAA036] hover:text-[#9E6212] transition-all font-mono text-[11px] sm:text-xs shadow-2xs active:scale-95 whitespace-nowrap"
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Time period filter - Clean single-line bar */}
+        <div className="flex items-center justify-start sm:justify-center pt-2 px-1">
+          <div className="flex w-full sm:w-auto flex-col sm:flex-row items-center justify-center gap-1.5 overflow-x-auto no-scrollbar">
+            <span className="text-[11px] font-medium text-[#787571] whitespace-nowrap flex-shrink-0">Show activity from</span>
+            <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-[#E5E0D8] bg-[#EFECE6] p-1 no-scrollbar flex-shrink-0" role="group" aria-label="Choose time period">
+              {TIME_FILTERS.map((f) => (
                 <button
                   key={f.value}
                   onClick={() => {
@@ -193,25 +212,6 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
                   }`}
                 >
                   {f.label}
-                </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-center md:justify-end gap-1.5 flex-wrap text-xs" aria-label="Popular repository presets">
-            <span className="text-[#787571] flex items-center gap-1 text-[11px] sm:text-xs font-medium flex-shrink-0">
-              <Sparkles className="w-3.5 h-3.5 text-[#EAA036] flex-shrink-0" /> Try an example:
-            </span>
-            <div className="flex items-center gap-1.5 flex-wrap justify-center">
-              {PRESET_REPOS.map((preset) => (
-                <button
-                  key={preset.value}
-                  onClick={() => handlePresetClick(preset.value)}
-                  disabled={loading}
-                  className="px-2.5 py-1 rounded-lg bg-white border border-[#E5E0D8] text-[#423E38] hover:border-[#EAA036] hover:text-[#9E6212] transition-all font-mono text-[11px] sm:text-xs shadow-2xs active:scale-95"
-                >
-                  {preset.label}
                 </button>
               ))}
             </div>
