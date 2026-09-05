@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { GitPullRequest, GitMerge, Clock, Shield, Users, HelpCircle, X } from 'lucide-react';
+import { GitPullRequest, GitMerge, Clock, Shield, Users, HelpCircle, X, RotateCw } from 'lucide-react';
 import type { RepoMetrics } from '../types';
 
 interface MetricsBarProps {
   metrics: RepoMetrics;
   fullName: string;
+  isCached?: boolean;
+  cachedAt?: number;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 interface TooltipData {
@@ -47,7 +51,14 @@ const METRIC_EXPLANATIONS: Record<string, TooltipData> = {
   },
 };
 
-export const MetricsBar: React.FC<MetricsBarProps> = ({ metrics, fullName }) => {
+export const MetricsBar: React.FC<MetricsBarProps> = ({
+  metrics,
+  fullName,
+  isCached,
+  cachedAt,
+  onRefresh,
+  isRefreshing,
+}) => {
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
 
   const formatAvgTime = (hours: number | null) => {
@@ -58,12 +69,20 @@ export const MetricsBar: React.FC<MetricsBarProps> = ({ metrics, fullName }) => 
     return `${days} d`;
   };
 
+  const formatCachedAge = (timestamp?: number) => {
+    if (!timestamp) return 'recently';
+    const diffMin = Math.max(Math.round((Date.now() - timestamp) / 60000), 0);
+    if (diffMin === 0) return 'just now';
+    if (diffMin === 1) return '1 min ago';
+    return `${diffMin} mins ago`;
+  };
+
   const totalContributorsDisplay = metrics.allTimeContributorsCount || metrics.contributorsCount;
 
   return (
     <div className="w-full my-3 sm:my-4 relative">
       {/* Target Repo Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 sm:gap-2 mb-2.5 sm:mb-3">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 sm:gap-2 mb-2 sm:mb-2.5">
         <h2 className="text-lg sm:text-xl font-display font-bold text-[#161514] flex items-center gap-2 flex-wrap">
           <span className="text-[#787571] font-mono text-[10px] sm:text-xs uppercase px-2 py-0.5 rounded bg-white border border-[#E5E0D8]">
             Target
@@ -83,6 +102,29 @@ export const MetricsBar: React.FC<MetricsBarProps> = ({ metrics, fullName }) => 
           <span className="text-[#161514] font-semibold">{totalContributorsDisplay} total contributors</span>
         </div>
       </div>
+
+      {/* Cache & Freshness Transparency Notice */}
+      {isCached && (
+        <div className="mb-2.5 px-3 py-1.5 rounded-xl bg-[#F7F5F0] border border-[#E5E0D8] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[11px] font-mono text-[#787571]">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="w-2 h-2 rounded-full bg-emerald-600 flex-shrink-0" />
+            <span className="text-[#161514] font-semibold">Cached snapshot ({formatCachedAge(cachedAt)} • 10m TTL):</span>
+            <span className="text-[#65615B]">PRs submitted seconds ago will appear after the 10m cache window.</span>
+          </div>
+          {onRefresh && (
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              className="flex items-center gap-1 text-[#9E6212] hover:text-[#7C4A0A] font-semibold font-sans hover:underline flex-shrink-0 cursor-pointer disabled:opacity-50"
+              title="Bypass 10m cache and fetch live data directly from GitHub API"
+            >
+              <RotateCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>{isRefreshing ? 'Fetching live...' : 'Refresh live'}</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Grid of 5 Architectural Stat Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">

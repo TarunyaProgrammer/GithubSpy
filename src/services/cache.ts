@@ -80,7 +80,7 @@ class RequestCache {
     return null;
   }
 
-  set<T>(key: string, data: T, ttlMs = 30 * 60 * 1000): void {
+  set<T>(key: string, data: T, ttlMs = 10 * 60 * 1000): void {
     const entry: CacheEntry<T> = {
       data,
       timestamp: Date.now(),
@@ -114,7 +114,7 @@ class RequestCache {
   async getOrFetch<T>(
     key: string,
     fetcher: () => Promise<T>,
-    ttlMs = 30 * 60 * 1000,
+    ttlMs = 10 * 60 * 1000,
     forceRefresh = false
   ): Promise<{ data: T; isCached: boolean; timestamp: number }> {
     if (!forceRefresh) {

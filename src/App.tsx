@@ -24,6 +24,7 @@ export function App() {
   const [stats, setStats] = useState<RepoStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState<string>('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('1m');
   const [currentQuery, setCurrentQuery] = useState('');
@@ -53,29 +54,41 @@ export function App() {
   }, []);
 
   const handleSearch = useCallback(
-    async (repoQuery: string, filter: TimeFilter) => {
+    async (repoQuery: string, filter: TimeFilter, forceRefresh = false) => {
       if (!repoQuery.trim()) return;
 
       const parsed = parseGitHubUrl(repoQuery);
       const cleanName = parsed ? `${parsed.owner}/${parsed.repo}` : repoQuery.trim();
       setCurrentQuery(cleanName);
       setTimeFilter(filter);
-      setLoading(true);
+
+      if (forceRefresh) {
+        setIsRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
       setError(null);
-      setLoadingProgress('Connecting to GitHub API...');
+      setLoadingProgress(forceRefresh ? 'Force pulling live data from GitHub...' : 'Connecting to GitHub API...');
 
       try {
-        const result = await fetchRepoStats(repoQuery, filter, (msg) => {
-          setLoadingProgress(msg);
-        });
+        const result = await fetchRepoStats(
+          repoQuery,
+          filter,
+          (msg) => {
+            setLoadingProgress(msg);
+          },
+          forceRefresh
+        );
         setStats(result);
         addRecentRepo(result.fullName);
         setLoadingProgress('');
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to analyze repository');
-        setStats(null);
+        if (!forceRefresh) setStats(null);
       } finally {
         setLoading(false);
+        setIsRefreshing(false);
         setLoadingProgress('');
       }
     },
@@ -195,8 +208,15 @@ export function App() {
         {/* Results Dashboard */}
         {stats && (
           <div className="space-y-3 sm:space-y-4 animate-fade-in">
-            {/* Core Metrics Overview with Formula Tooltips */}
-            <MetricsBar metrics={stats.metrics} fullName={stats.fullName} />
+            {/* Core Metrics Overview with Formula Tooltips & Live Cache Sync */}
+            <MetricsBar
+              metrics={stats.metrics}
+              fullName={stats.fullName}
+              isCached={stats.isCached}
+              cachedAt={stats.cachedAt}
+              onRefresh={() => handleSearch(stats.fullName, timeFilter, true)}
+              isRefreshing={isRefreshing}
+            />
 
             {/* Space-Efficient Visual Analytics: Donut PR Resolution & Reviewer vs Community */}
             <CompactCharts metrics={stats.metrics} />

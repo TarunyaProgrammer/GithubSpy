@@ -62,6 +62,8 @@ export interface RepoStats {
   contributors: ContributorStats[];
   recentPRs: PullRequest[];
   metrics: RepoMetrics;
+  isCached?: boolean;
+  cachedAt?: number;
 }
 
 export interface UserStats {

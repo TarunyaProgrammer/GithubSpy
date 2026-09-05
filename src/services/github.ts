@@ -249,7 +249,8 @@ function computeApplicantIntelligence(
 export async function fetchRepoStats(
   rawInput: string,
   timeFilter: TimeFilter,
-  onProgress?: (message: string) => void
+  onProgress?: (message: string) => void,
+  forceRefresh = false
 ): Promise<RepoStats> {
   const target = parseGitHubUrl(rawInput);
   if (!target) {
@@ -260,12 +261,14 @@ export async function fetchRepoStats(
   const fullName = `${owner}/${repo}`;
   const rawCacheKey = `repo_raw_${fullName}`;
 
-  onProgress?.(`Inspecting ${fullName}...`);
+  onProgress?.(forceRefresh ? `Force refreshing live data for ${fullName}...` : `Inspecting ${fullName}...`);
   const filterDate = getTimeFilterDate(timeFilter);
   const token = getActiveToken();
 
-  // Step 1: Retrieve or fetch raw repository PRs & maintainers (cached for 30 minutes)
-  const { data: rawRepoData } = await appCache.getOrFetch(rawCacheKey, async () => {
+  // Step 1: Retrieve or fetch raw repository PRs & maintainers (cached for 10 minutes)
+  const { data: rawRepoData, isCached, timestamp } = await appCache.getOrFetch(
+    rawCacheKey,
+    async () => {
     let maintainerLoginsArray: string[] = [];
     let prs: PullRequest[] = [];
     let officialContributors: { login: string; avatar_url: string; contributions: number }[] = [];
@@ -478,6 +481,8 @@ export async function fetchRepoStats(
     contributors,
     recentPRs: activePRs,
     metrics,
+    isCached,
+    cachedAt: timestamp,
   };
 }
 
