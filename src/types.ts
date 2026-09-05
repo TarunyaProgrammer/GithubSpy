@@ -59,6 +59,7 @@ export interface UserStats {
   username: string;
   avatarUrl: string;
   isMaintainer: boolean;
+  contributions?: number;
   totalStats: {
     totalPRs: number;
     mergedPRs: number;

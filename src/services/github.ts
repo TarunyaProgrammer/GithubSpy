@@ -396,59 +396,91 @@ export async function fetchUserStats(
   timeFilter: TimeFilter,
   onProgress?: (message: string) => void
 ): Promise<UserStats> {
-  const cacheKey = `user_stats_${username}_${timeFilter}`;
+  const existingContributor = activeRepoStats?.contributors.find(
+    (c) => c.username.toLowerCase() === username.toLowerCase()
+  );
+  const avatarUrl = existingContributor?.avatarUrl || `https://github.com/${username}.png`;
+  const isMaintainerInActiveRepo = existingContributor?.isMaintainer || false;
+  const contributions = existingContributor?.contributions;
 
-    const existingContributor = activeRepoStats?.contributors.find(
-      (c) => c.username.toLowerCase() === username.toLowerCase()
-    );
-    const avatarUrl = existingContributor?.avatarUrl || `https://github.com/${username}.png`;
-    const existingPRs = activeRepoStats?.recentPRs.filter((pr) => pr.user.login.toLowerCase() === username.toLowerCase()) || [];
+  let existingPRs = activeRepoStats?.recentPRs.filter(
+    (pr) => pr.user.login.toLowerCase() === username.toLowerCase()
+  ) || [];
 
-    const isMaintainerInActiveRepo = existingContributor?.isMaintainer || false;
-
-    const repositories: UserStats['repositories'] = {};
-    const totalStats = {
-      totalPRs: 0,
-      mergedPRs: 0,
-      openPRs: 0,
-      closedPRs: 0,
-    };
-
-    for (const pr of existingPRs) {
-      const repoName = pr.repository_name || 'unknown/repo';
-      if (!repositories[repoName]) {
-        repositories[repoName] = {
-          totalPRs: 0,
-          mergedPRs: 0,
-          openPRs: 0,
-          closedPRs: 0,
-        };
+  // If no PRs found in the recent window, attempt an on-demand Search API query to find historical PRs
+  if (existingPRs.length === 0 && activeRepoStats?.fullName) {
+    try {
+      onProgress?.(`Looking up historical pull requests for ${username}…`);
+      const { data: searchResults } = await fetchGitHubApi(
+        `/search/issues?q=repo:${activeRepoStats.fullName}+type:pr+author:${username}&per_page=30`
+      );
+      if (searchResults && Array.isArray(searchResults.items) && searchResults.items.length > 0) {
+        existingPRs = searchResults.items.map((item: any) => ({
+          number: item.number,
+          title: item.title,
+          state: item.state === 'open' ? 'open' : 'closed',
+          created_at: item.created_at,
+          merged_at: item.pull_request?.merged_at || (item.state === 'closed' ? item.closed_at : null),
+          closed_at: item.closed_at || null,
+          html_url: item.html_url,
+          repository_url: `https://github.com/${activeRepoStats.fullName}`,
+          repository_name: activeRepoStats.fullName,
+          author_association: item.author_association || 'NONE',
+          user: {
+            login: item.user?.login || username,
+            avatar_url: item.user?.avatar_url || avatarUrl,
+          },
+        }));
       }
+    } catch {
+      // Non-blocking fallback if search API is rate limited
+    }
+  }
 
-      repositories[repoName].totalPRs++;
-      totalStats.totalPRs++;
+  const repositories: UserStats['repositories'] = {};
+  const totalStats = {
+    totalPRs: 0,
+    mergedPRs: 0,
+    openPRs: 0,
+    closedPRs: 0,
+  };
 
-      if (pr.merged_at) {
-        repositories[repoName].mergedPRs++;
-        totalStats.mergedPRs++;
-      } else if (pr.state === 'open') {
-        repositories[repoName].openPRs++;
-        totalStats.openPRs++;
-      } else {
-        repositories[repoName].closedPRs++;
-        totalStats.closedPRs++;
-      }
+  for (const pr of existingPRs) {
+    const repoName = pr.repository_name || 'unknown/repo';
+    if (!repositories[repoName]) {
+      repositories[repoName] = {
+        totalPRs: 0,
+        mergedPRs: 0,
+        openPRs: 0,
+        closedPRs: 0,
+      };
     }
 
-    return {
-      username,
-      avatarUrl,
-      isMaintainer: isMaintainerInActiveRepo,
-      totalStats,
-      repositories,
-      pullRequests: existingPRs,
-    };
+    repositories[repoName].totalPRs++;
+    totalStats.totalPRs++;
+
+    if (pr.merged_at) {
+      repositories[repoName].mergedPRs++;
+      totalStats.mergedPRs++;
+    } else if (pr.state === 'open') {
+      repositories[repoName].openPRs++;
+      totalStats.openPRs++;
+    } else {
+      repositories[repoName].closedPRs++;
+      totalStats.closedPRs++;
+    }
   }
+
+  return {
+    username,
+    avatarUrl,
+    isMaintainer: isMaintainerInActiveRepo,
+    contributions,
+    totalStats,
+    repositories,
+    pullRequests: existingPRs,
+  };
+}
 
 /**
  * Check initial rate limit status on app mount

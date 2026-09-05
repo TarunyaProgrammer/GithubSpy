@@ -66,7 +66,7 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
             </span>
           </h3>
           <p className="text-xs text-[#787571] mt-0.5 font-sans">
-            Open a profile to see the pull requests we found for that person in this project.
+            Pull requests reflect the analyzed timeframe. Commits include all-time Git history (via GitHub API).
           </p>
         </div>
 
@@ -221,13 +221,22 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
 
                   {/* PR Count & Commit Activity Pills */}
                   <div className="mt-2 grid grid-cols-3 gap-1 text-[10px] sm:text-[11px] font-mono">
-                    <div className="px-1 py-0.5 rounded-md bg-white border border-[#E5E0D8] text-[#161514] text-center truncate" title={`${c.totalPRs} Pull Requests analyzed`}>
-                      <span className="font-bold">{c.totalPRs}</span> PRs
+                    <div
+                      className="px-1 py-0.5 rounded-md bg-white border border-[#E5E0D8] text-[#161514] text-center truncate"
+                      title={c.totalPRs > 0 ? `${c.totalPRs} pull requests in analyzed window` : 'No pull requests in this analyzed window (click to view all-time PRs)'}
+                    >
+                      <span className="font-bold">{c.totalPRs}</span> {c.totalPRs === 0 ? 'rcnt PRs' : 'PRs'}
                     </div>
-                    <div className="px-1 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 text-center truncate" title={`${c.mergedPRs} merged pull requests`}>
+                    <div
+                      className="px-1 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 text-center truncate"
+                      title={`${c.mergedPRs} merged pull requests in window`}
+                    >
                       <span className="font-bold">{c.mergedPRs}</span> merged
                     </div>
-                    <div className="px-1 py-0.5 rounded-md bg-[#EAA036]/10 border border-[#EAA036]/25 text-[#9E6212] text-center truncate" title={c.contributions ? `${c.contributions} all-time Git commits` : `${c.openPRs} open pull requests`}>
+                    <div
+                      className="px-1 py-0.5 rounded-md bg-[#EAA036]/10 border border-[#EAA036]/25 text-[#9E6212] text-center truncate"
+                      title={c.contributions !== undefined && c.contributions > 0 ? `${c.contributions} total Git commits (includes merge commits via GitHub API)` : `${c.openPRs} open pull requests`}
+                    >
                       {c.contributions !== undefined && c.contributions > 0 ? (
                         <span><span className="font-bold">{c.contributions}</span> commits</span>
                       ) : (

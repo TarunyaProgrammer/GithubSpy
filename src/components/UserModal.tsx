@@ -19,7 +19,7 @@ export const UserModal: React.FC<UserModalProps> = ({ userStats, onClose }) => {
 
   if (!userStats) return null;
 
-  const { username, avatarUrl, isMaintainer, totalStats, pullRequests } = userStats;
+  const { username, avatarUrl, isMaintainer, totalStats, pullRequests, contributions } = userStats;
   const mergeRate = totalStats.totalPRs > 0
     ? Math.round((totalStats.mergedPRs / totalStats.totalPRs) * 100)
     : 0;
@@ -77,14 +77,16 @@ export const UserModal: React.FC<UserModalProps> = ({ userStats, onClose }) => {
           <button
             onClick={onClose}
             aria-label="Close dialog (Press Escape)"
-            className="p-2 rounded-xl text-[#787571] hover:text-[#161514] hover:bg-[#EFECE6] transition-colors flex-shrink-0 ml-2"
+            className="p-2 rounded-xl text-[#787571] hover:text-[#161514] hover:bg-[#EFECE6] transition-colors flex-shrink-0 ml-2 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Stats Strip */}
-        <div className="p-3.5 sm:p-6 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 border-b border-[#E5E0D8] text-center font-mono">
+        <div className={`p-3.5 sm:p-6 grid gap-2 sm:gap-2.5 border-b border-[#E5E0D8] text-center font-mono ${
+          contributions !== undefined && contributions > 0 ? 'grid-cols-2 sm:grid-cols-5' : 'grid-cols-2 sm:grid-cols-4'
+        }`}>
           <div className="p-2.5 sm:p-3 rounded-2xl bg-[#F7F5F0] border border-[#E5E0D8]">
             <div className="text-[11px] sm:text-xs text-[#787571]">Pull requests</div>
             <div className="text-xl sm:text-2xl font-display font-bold text-[#161514] mt-0.5">
@@ -104,23 +106,43 @@ export const UserModal: React.FC<UserModalProps> = ({ userStats, onClose }) => {
             </div>
           </div>
           <div className="p-2.5 sm:p-3 rounded-2xl bg-[#F7F5F0] border border-[#E5E0D8]">
-            <div className="text-[11px] sm:text-xs text-[#65615B] font-medium">Merged</div>
+            <div className="text-[11px] sm:text-xs text-[#65615B] font-medium">Merge rate</div>
             <div className="text-xl sm:text-2xl font-display font-bold text-[#161514] mt-0.5">
               {mergeRate}%
             </div>
           </div>
+          {contributions !== undefined && contributions > 0 && (
+            <div className="p-2.5 sm:p-3 rounded-2xl bg-[#F7F5F0] border border-[#E5E0D8] col-span-2 sm:col-span-1" title="All-time Git commits including merge commits via GitHub API">
+              <div className="text-[11px] sm:text-xs text-[#65615B] font-medium">Total commits</div>
+              <div className="text-xl sm:text-2xl font-display font-bold text-[#9E6212] mt-0.5">
+                {contributions}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Pull Requests in Scope */}
         <div className="p-4 sm:p-6 flex-1 overflow-y-auto space-y-2.5 sm:space-y-3">
           <h4 className="text-xs font-semibold text-[#787571] uppercase tracking-wider font-mono">
-            Pull requests in this time period ({pullRequests.length})
+            Pull requests recorded ({pullRequests.length})
           </h4>
 
           {pullRequests.length === 0 ? (
-            <p className="text-xs text-[#787571] py-6 text-center">
-              We did not find pull requests for this person in the selected time period.
-            </p>
+            <div className="py-8 text-center space-y-3 font-sans">
+              <p className="text-xs text-[#787571]">
+                No pull requests found in the current sample for @{username}.
+                {contributions ? ` However, they authored ${contributions} all-time Git commits on this repository.` : ''}
+              </p>
+              <a
+                href={`https://github.com/search?q=type%3Apr+author%3A${username}&type=pullrequests`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-[#E5E0D8] hover:border-[#EAA036] hover:text-[#9E6212] text-xs font-mono font-semibold shadow-2xs transition-all cursor-pointer"
+              >
+                <span>Search all PRs by @{username} on GitHub</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
           ) : (
             <div className="space-y-2">
               {pullRequests.map((pr) => {
