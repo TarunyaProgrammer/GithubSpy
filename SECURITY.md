@@ -4,10 +4,10 @@
 
 We actively maintain and provide security updates for the following versions of **GithubSpy**:
 
-| Version | Supported          | Security Maintenance |
-| ------- | ------------------ | -------------------- |
-| 1.x.x   | :white_check_mark: | Active Support       |
-| < 1.0.0 | :x:                | Deprecated           |
+| Version | Supported | Security Maintenance |
+| ------- | --------- | -------------------- |
+| 1.x.x   | Yes       | Active Support       |
+| < 1.0.0 | No        | Deprecated           |
 
 ---
 
