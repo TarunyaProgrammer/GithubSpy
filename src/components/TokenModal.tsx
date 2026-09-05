@@ -8,13 +8,21 @@ import {
   sanitizeToken,
 } from '../services/token';
 
+import type { RateLimitInfo } from '../types';
+
 interface TokenModalProps {
   isOpen: boolean;
   onClose: () => void;
   onTokenChanged: () => void;
+  rateLimit?: RateLimitInfo | null;
 }
 
-export const TokenModal: React.FC<TokenModalProps> = ({ isOpen, onClose, onTokenChanged }) => {
+export const TokenModal: React.FC<TokenModalProps> = ({
+  isOpen,
+  onClose,
+  onTokenChanged,
+  rateLimit,
+}) => {
   const [tokenInput, setTokenInput] = useState('');
   const [isTesting, setIsTesting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -34,6 +42,10 @@ export const TokenModal: React.FC<TokenModalProps> = ({ isOpen, onClose, onToken
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
+
+  const remaining = rateLimit?.remaining ?? null;
+  const limit = rateLimit?.limit ?? (isSaved ? 5000 : 60);
+  const resetTimeStr = rateLimit?.resetDate ? rateLimit.resetDate.toLocaleTimeString() : null;
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +67,7 @@ export const TokenModal: React.FC<TokenModalProps> = ({ isOpen, onClose, onToken
       setTokenInput('');
       setFeedback({
         type: 'success',
-        message: `Token verified! Authenticated as @${check.username}. 5,000 requests/hour limit unlocked.`,
+        message: `Token verified! Authenticated as @${check.username}. 5,000 requests/hour limit & GraphQL acceleration unlocked.`,
       });
       onTokenChanged();
     } else {
@@ -97,7 +109,7 @@ export const TokenModal: React.FC<TokenModalProps> = ({ isOpen, onClose, onToken
                 GitHub API Rate Limit & Token
               </h3>
               <p className="text-xs text-[#787571] font-sans">
-                Elevate hourly quota from 60 to 5,000 requests.
+                Elevate hourly quota from 60 to 5,000 requests with GraphQL.
               </p>
             </div>
           </div>
@@ -110,29 +122,46 @@ export const TokenModal: React.FC<TokenModalProps> = ({ isOpen, onClose, onToken
           </button>
         </div>
 
-        {/* Current status pill */}
-        <div className="p-3 sm:p-3.5 rounded-2xl bg-[#F7F5F0] border border-[#E5E0D8] flex items-center justify-between text-xs font-mono">
-          <div className="flex items-center gap-1.5 sm:gap-2 truncate mr-2">
-            <span className="text-[#787571]">Status:</span>
+        {/* Live Authoritative Quota Breakdown */}
+        <div className="p-3 sm:p-3.5 rounded-2xl bg-[#F7F5F0] border border-[#E5E0D8] space-y-2 text-xs font-mono">
+          <div className="flex items-center justify-between">
+            <span className="text-[#787571]">Current Mode:</span>
             {isSaved ? (
-              <span className="text-emerald-700 font-semibold flex items-center gap-1 truncate">
-                <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 text-emerald-600" />
-                <span className="truncate">5,000 req/hr Active</span>
+              <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                5,000 req/hr (PAT Active)
               </span>
             ) : (
-              <span className="text-[#524E48] truncate">
-                Standard quota mode
+              <span className="text-[#524E48] font-medium">
+                Public IP (60 req/hr limit)
               </span>
             )}
           </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-[#787571]">Real Quota Remaining:</span>
+            <span className="font-bold text-[#161514]">
+              {remaining !== null ? `${remaining.toLocaleString()} requests remaining` : 'Calculating...'}
+            </span>
+          </div>
+
+          {resetTimeStr && (
+            <div className="flex items-center justify-between text-[11px] text-[#787571]">
+              <span>Hourly Reset Time:</span>
+              <span>{resetTimeStr}</span>
+            </div>
+          )}
+
           {isSaved && (
-            <button
-              type="button"
-              onClick={handleRemove}
-              className="text-rose-600 hover:text-rose-700 flex items-center gap-1 hover:underline flex-shrink-0 font-medium"
-            >
-              <Trash2 className="w-3.5 h-3.5" /> Remove
-            </button>
+            <div className="pt-1.5 border-t border-[#E5E0D8] flex justify-end">
+              <button
+                type="button"
+                onClick={handleRemove}
+                className="text-rose-600 hover:text-rose-700 flex items-center gap-1 hover:underline font-medium text-xs"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Remove Token
+              </button>
+            </div>
           )}
         </div>
 

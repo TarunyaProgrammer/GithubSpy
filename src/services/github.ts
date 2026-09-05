@@ -12,6 +12,8 @@ import type {
 import { getActiveToken } from './token';
 import { appCache } from './cache';
 
+import { fetchRepoViaGraphQL } from './graphql';
+
 // Global rate limit listener
 type RateLimitListener = (info: RateLimitInfo) => void;
 const rateLimitListeners = new Set<RateLimitListener>();
@@ -19,6 +21,10 @@ const rateLimitListeners = new Set<RateLimitListener>();
 export function onRateLimitUpdate(listener: RateLimitListener): () => void {
   rateLimitListeners.add(listener);
   return () => rateLimitListeners.delete(listener);
+}
+
+export function broadcastRateLimit(info: RateLimitInfo) {
+  rateLimitListeners.forEach((fn) => fn(info));
 }
 
 function notifyRateLimit(headers: Headers, isAuthenticated: boolean) {
@@ -38,7 +44,7 @@ function notifyRateLimit(headers: Headers, isAuthenticated: boolean) {
       isAuthenticated,
     };
 
-    rateLimitListeners.forEach((fn) => fn(info));
+    broadcastRateLimit(info);
   }
 }
 
@@ -238,73 +244,95 @@ export async function fetchRepoStats(
   const fullName = `${owner}/${repo}`;
   const cacheKey = `repo_stats_${fullName}_${timeFilter}`;
 
-  return appCache.getOrFetch(cacheKey, async () => {
+  const { data } = await appCache.getOrFetch(cacheKey, async () => {
     onProgress?.(`Inspecting ${fullName}...`);
     const filterDate = getTimeFilterDate(timeFilter);
 
     // Track known maintainers identified from PR author associations and merges
-    const maintainerLogins = new Set<string>();
+    let maintainerLogins = new Set<string>();
+    let pullRequests: PullRequest[] = [];
 
-    const pullRequests: PullRequest[] = [];
-    let page = 1;
-    let hasMore = true;
-    const MAX_PAGES = 5; // Up to 500 PRs
-
-    while (hasMore && page <= MAX_PAGES) {
-      onProgress?.(`Interrogating PR stream (batch ${page} of ${MAX_PAGES})...`);
-
-      const { data: rawPulls } = await fetchGitHubApi(
-        `/repos/${owner}/${repo}/pulls?state=all&per_page=100&page=${page}&sort=created&direction=desc`
-      );
-
-      if (!Array.isArray(rawPulls) || rawPulls.length === 0) {
-        hasMore = false;
-        break;
+    // ACCELERATION: If a GitHub token is active, execute high-speed single-request GraphQL query
+    const token = getActiveToken();
+    if (token) {
+      onProgress?.('Executing single-request GraphQL accelerator (1 quota point)...');
+      const gqlResult = await fetchRepoViaGraphQL(owner, repo);
+      if (gqlResult) {
+        maintainerLogins = gqlResult.maintainerLogins;
+        pullRequests = gqlResult.pullRequests.filter((pr) =>
+          isAfter(parseISO(pr.created_at), filterDate)
+        );
+        if (gqlResult.rateLimit) {
+          broadcastRateLimit({
+            ...gqlResult.rateLimit,
+            isAuthenticated: true,
+          });
+        }
       }
+    }
 
-      for (const pr of rawPulls) {
-        const createdAt = parseISO(pr.created_at);
-        if (!isAfter(createdAt, filterDate)) {
+    // FALLBACK / UNCONFIRMED: If GraphQL returned null (or user is unauthenticated), use optimized REST
+    if (pullRequests.length === 0 && (!token || !maintainerLogins.size)) {
+      let page = 1;
+      let hasMore = true;
+      const MAX_PAGES = 5; // Up to 500 PRs
+
+      while (hasMore && page <= MAX_PAGES) {
+        onProgress?.(`Interrogating PR stream (batch ${page} of ${MAX_PAGES})...`);
+
+        const { data: rawPulls } = await fetchGitHubApi(
+          `/repos/${owner}/${repo}/pulls?state=all&per_page=100&page=${page}&sort=created&direction=desc`
+        );
+
+        if (!Array.isArray(rawPulls) || rawPulls.length === 0) {
           hasMore = false;
           break;
         }
 
-        const authorLogin = pr.user?.login || 'ghost';
-        const authorAssociation = pr.author_association || 'NONE';
+        for (const pr of rawPulls) {
+          const createdAt = parseISO(pr.created_at);
+          if (!isAfter(createdAt, filterDate)) {
+            hasMore = false;
+            break;
+          }
 
-        // Detect maintainers accurately from author_association & merged_by
-        const isMaintainer = ['OWNER', 'MEMBER', 'COLLABORATOR'].includes(authorAssociation);
-        if (isMaintainer) {
-          maintainerLogins.add(authorLogin);
+          const authorLogin = pr.user?.login || 'ghost';
+          const authorAssociation = pr.author_association || 'NONE';
+
+          // Detect maintainers accurately from author_association & merged_by
+          const isMaintainer = ['OWNER', 'MEMBER', 'COLLABORATOR'].includes(authorAssociation);
+          if (isMaintainer) {
+            maintainerLogins.add(authorLogin);
+          }
+
+          if (pr.merged_by?.login) {
+            maintainerLogins.add(pr.merged_by.login);
+          }
+
+          pullRequests.push({
+            number: pr.number,
+            title: pr.title || `PR #${pr.number}`,
+            state: pr.state === 'open' ? 'open' : 'closed',
+            created_at: pr.created_at,
+            merged_at: pr.merged_at || null,
+            closed_at: pr.closed_at || null,
+            html_url: pr.html_url,
+            repository_url: pr.base?.repo?.html_url || `https://github.com/${fullName}`,
+            repository_name: fullName,
+            author_association: authorAssociation,
+            user: {
+              login: authorLogin,
+              avatar_url: pr.user?.avatar_url || 'https://github.com/identicons/placeholder.png',
+            },
+          });
         }
 
-        if (pr.merged_by?.login) {
-          maintainerLogins.add(pr.merged_by.login);
+        if (rawPulls.length < 100) {
+          hasMore = false;
         }
 
-        pullRequests.push({
-          number: pr.number,
-          title: pr.title || `PR #${pr.number}`,
-          state: pr.state === 'open' ? 'open' : 'closed',
-          created_at: pr.created_at,
-          merged_at: pr.merged_at || null,
-          closed_at: pr.closed_at || null,
-          html_url: pr.html_url,
-          repository_url: pr.base?.repo?.html_url || `https://github.com/${fullName}`,
-          repository_name: fullName,
-          author_association: authorAssociation,
-          user: {
-            login: authorLogin,
-            avatar_url: pr.user?.avatar_url || 'https://github.com/identicons/placeholder.png',
-          },
-        });
+        page++;
       }
-
-      if (rawPulls.length < 100) {
-        hasMore = false;
-      }
-
-      page++;
     }
 
     onProgress?.('Synthesizing intelligence dossier...');
@@ -394,6 +422,8 @@ export async function fetchRepoStats(
       metrics,
     };
   });
+
+  return data;
 }
 
 /**
@@ -407,7 +437,7 @@ export async function fetchUserStats(
 ): Promise<UserStats> {
   const cacheKey = `user_stats_${username}_${timeFilter}`;
 
-  return appCache.getOrFetch(cacheKey, async () => {
+  const { data } = await appCache.getOrFetch(cacheKey, async () => {
     onProgress?.(`Accessing dossier for @${username}...`);
 
     const { data: userProfile } = await fetchGitHubApi(`/users/${username}`);
@@ -460,6 +490,8 @@ export async function fetchUserStats(
       pullRequests: existingPRs,
     };
   });
+
+  return data;
 }
 
 /**

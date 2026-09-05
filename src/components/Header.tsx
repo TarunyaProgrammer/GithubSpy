@@ -41,25 +41,35 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="md:hidden">Star</span>
           </a>
 
-          {/* Rate limit badge - visible on tablet and desktop */}
+          {/* Real-time GitHub API Quota Badge */}
           {rateLimit && (
-            <div
-              className={`hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono border ${
+            <button
+              type="button"
+              onClick={onOpenTokenModal}
+              aria-label="View rate limit details or add token"
+              className={`hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono border transition-all cursor-pointer ${
                 isHighLimit
-                  ? 'bg-[#EAA036]/10 text-[#9E6212] border-[#EAA036]/25'
-                  : 'bg-white text-[#524E48] border-[#E5E0D8]'
+                  ? 'bg-[#EAA036]/10 text-[#9E6212] border-[#EAA036]/30 hover:bg-[#EAA036]/20'
+                  : remaining !== null && remaining <= 12
+                  ? 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100 animate-pulse'
+                  : 'bg-white text-[#423E38] border-[#E5E0D8] hover:bg-[#EFECE6]'
               }`}
-              title={
-                rateLimit.resetDate
-                  ? `Resets at ${rateLimit.resetDate.toLocaleTimeString()}`
-                  : 'API Rate limit remaining'
-              }
+              title={(() => {
+                const estSearches = remaining !== null ? Math.max(Math.floor(remaining / (isHighLimit ? 1 : 2)), 0) : 0;
+                const resetText = rateLimit.resetDate ? `Resets at ${rateLimit.resetDate.toLocaleTimeString()}` : 'Resets hourly';
+                return `Authoritative GitHub Rate Limit: ${remaining ?? 0} requests remaining out of ${limit ?? 60}/hr (~${estSearches} repo searches remaining). ${resetText}. Click to enter token & unlock 5,000 req/hr.`;
+              })()}
             >
-              <Zap className="w-3 h-3 text-[#EAA036] flex-shrink-0" />
+              <Zap className={`w-3.5 h-3.5 flex-shrink-0 ${remaining !== null && remaining <= 12 && !isHighLimit ? 'text-rose-600' : 'text-[#EAA036]'}`} />
               <span>
-                {remaining !== null ? remaining : '--'}/{limit !== null ? limit : '--'} req/hr
+                <strong>{remaining !== null ? remaining.toLocaleString() : '--'}</strong> left of {limit !== null ? (limit >= 1000 ? '5k' : limit) : '60'}
               </span>
-            </div>
+              {remaining !== null && remaining <= 12 && !isHighLimit && (
+                <span className="text-[10px] font-sans font-semibold px-1 rounded bg-rose-200/70 text-rose-900 hidden lg:inline">
+                  Low
+                </span>
+              )}
+            </button>
           )}
 
           {/* Token setting trigger */}

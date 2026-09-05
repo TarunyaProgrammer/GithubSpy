@@ -223,6 +223,7 @@ export function App() {
         isOpen={isTokenModalOpen}
         onClose={() => setIsTokenModalOpen(false)}
         onTokenChanged={handleTokenChanged}
+        rateLimit={rateLimit}
       />
 
       {/* Footer */}
