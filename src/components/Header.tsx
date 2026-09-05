@@ -4,16 +4,12 @@ import { BrandLogo } from './BrandLogo';
 import type { RateLimitInfo } from '../types';
 
 interface HeaderProps {
-  darkMode: boolean;
-  onToggleDarkMode: () => void;
   rateLimit: RateLimitInfo | null;
   hasPersonalToken: boolean;
   onOpenTokenModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  darkMode,
-  onToggleDarkMode,
   rateLimit,
   hasPersonalToken,
   onOpenTokenModal,
@@ -23,24 +19,24 @@ export const Header: React.FC<HeaderProps> = ({
   const limit = rateLimit?.limit ?? null;
 
   return (
-    <header className="sticky top-0 z-30 w-full border-b border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-[#090a0f]/90 backdrop-blur-md transition-colors">
+    <header className="sticky top-0 z-30 w-full border-b border-[#E5E0D8] bg-[#F7F5F0]/95 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-15 sm:h-16 flex items-center justify-between gap-2">
-        {/* Minimalist Brand Logo with Vector Emblem */}
+        {/* Minimalist Brand Logo */}
         <div className="flex-shrink-0">
           <BrandLogo size="md" />
         </div>
 
-        {/* Right Actions - Ultra Responsive */}
+        {/* Right Actions - Warm Editorial Styling */}
         <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-3 flex-shrink-0">
-          {/* Star on GitHub CTA */}
+          {/* Star on GitHub CTA - Signature Honey Amber Solid Button */}
           <a
             href="https://github.com/TarunyaProgrammer/GithubSpy"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Star GithubSpy on GitHub"
-            className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-champagne-500/15 via-amber-500/10 to-transparent hover:from-champagne-500/25 border border-champagne-500/30 text-champagne-700 dark:text-champagne-300 hover:text-champagne-800 dark:hover:text-champagne-200 transition-all group focus-visible:ring-1"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#EAA036] hover:bg-[#DF9126] active:bg-[#C87E18] text-[#161514] shadow-xs transition-all group focus-visible:ring-2 focus-visible:ring-[#EAA036]"
           >
-            <Star className="w-3.5 h-3.5 fill-champagne-500 text-champagne-500 group-hover:scale-110 transition-transform flex-shrink-0" />
+            <Star className="w-3.5 h-3.5 fill-[#161514] text-[#161514] group-hover:scale-110 transition-transform flex-shrink-0" />
             <span className="hidden md:inline">Star on GitHub</span>
             <span className="md:hidden">Star</span>
           </a>
@@ -48,10 +44,10 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Rate limit badge - visible on tablet and desktop */}
           {rateLimit && (
             <div
-              className={`hidden lg:flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-xs font-mono border ${
+              className={`hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono border ${
                 isHighLimit
-                  ? 'bg-brand-500/10 text-brand-700 dark:text-brand-300 border-brand-500/20'
-                  : 'bg-champagne-500/10 text-champagne-700 dark:text-champagne-400 border-champagne-500/20'
+                  ? 'bg-[#EAA036]/10 text-[#9E6212] border-[#EAA036]/25'
+                  : 'bg-white text-[#524E48] border-[#E5E0D8]'
               }`}
               title={
                 rateLimit.resetDate
@@ -59,9 +55,9 @@ export const Header: React.FC<HeaderProps> = ({
                   : 'API Rate limit remaining'
               }
             >
-              <Zap className="w-3 h-3 text-champagne-500 flex-shrink-0" />
+              <Zap className="w-3 h-3 text-[#EAA036] flex-shrink-0" />
               <span>
-                {remaining !== null ? remaining : '--'}/{limit !== null ? limit : '--'}
+                {remaining !== null ? remaining : '--'}/{limit !== null ? limit : '--'} req/hr
               </span>
             </div>
           )}
@@ -70,13 +66,13 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onOpenTokenModal}
             aria-label="Configure GitHub API Personal Access Token"
-            className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${
               hasPersonalToken
-                ? 'bg-brand-500/15 text-brand-700 dark:text-brand-300 hover:bg-brand-500/25 border border-brand-500/30'
-                : 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200/80 dark:border-zinc-700/80'
+                ? 'bg-[#EAA036]/15 text-[#9E6212] hover:bg-[#EAA036]/25 border border-[#EAA036]/35'
+                : 'bg-white text-[#161514] hover:bg-[#EFECE6] border border-[#E5E0D8]'
             }`}
           >
-            <KeyRound className="w-3.5 h-3.5 text-champagne-500 flex-shrink-0" />
+            <KeyRound className="w-3.5 h-3.5 text-[#EAA036] flex-shrink-0" />
             <span className="hidden sm:inline">
               {hasPersonalToken ? 'PAT Active' : 'API Token'}
             </span>
@@ -84,17 +80,8 @@ export const Header: React.FC<HeaderProps> = ({
               {hasPersonalToken ? 'PAT' : 'Token'}
             </span>
             {hasPersonalToken && (
-              <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-ping flex-shrink-0" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#EAA036] animate-ping flex-shrink-0" />
             )}
-          </button>
-
-          {/* Dark mode toggle */}
-          <button
-            onClick={onToggleDarkMode}
-            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="p-1.5 sm:p-2 rounded-xl text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex-shrink-0"
-          >
-            {darkMode ? <Sun className="w-4 h-4 text-champagne-400" /> : <MoonStar className="w-4 h-4" />}
           </button>
         </div>
       </div>

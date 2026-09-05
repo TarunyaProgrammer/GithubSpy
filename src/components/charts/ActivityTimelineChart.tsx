@@ -80,18 +80,18 @@ export const ActivityTimelineChart: React.FC<ActivityTimelineChartProps> = ({ pu
 
   return (
     <div
-      className="p-5 rounded-2xl bg-white dark:bg-obsidian-900 border border-zinc-200/80 dark:border-zinc-800 shadow-xs"
+      className="p-5 rounded-2xl bg-white border border-[#E5E0D8] shadow-xs"
       role="region"
       aria-label="Pull Request Activity Timeline"
     >
       {/* Chart Title & Quick Status */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
         <div>
-          <h4 className="text-sm font-display font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-brand-500" />
+          <h4 className="text-sm font-display font-bold text-[#161514] flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-[#EAA036]" />
             <span>PR Influx & Merge Timeline</span>
           </h4>
-          <p className="text-xs text-zinc-500 mt-0.5">
+          <p className="text-xs text-[#787571] mt-0.5">
             Distribution of pull request submissions and merge resolutions over time.
           </p>
         </div>
@@ -99,12 +99,12 @@ export const ActivityTimelineChart: React.FC<ActivityTimelineChartProps> = ({ pu
         {/* Legend */}
         <div className="flex items-center gap-3 text-xs font-mono">
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-brand-500" />
-            <span className="text-zinc-600 dark:text-zinc-400">Total PRs</span>
+            <span className="w-2.5 h-2.5 rounded-xs bg-[#161514]" />
+            <span className="text-[#65615B]">Total PRs</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-violet-400" />
-            <span className="text-zinc-600 dark:text-zinc-400">Merged</span>
+            <span className="w-2.5 h-2.5 rounded-xs bg-[#EAA036]" />
+            <span className="text-[#65615B]">Merged</span>
           </div>
         </div>
       </div>
@@ -119,12 +119,12 @@ export const ActivityTimelineChart: React.FC<ActivityTimelineChartProps> = ({ pu
         >
           <defs>
             <linearGradient id="totalBarGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#6366f1" stopOpacity="0.85" />
-              <stop offset="100%" stopColor="#4f46e5" stopOpacity="0.3" />
+              <stop offset="0%" stopColor="#161514" stopOpacity="0.85" />
+              <stop offset="100%" stopColor="#2E2C29" stopOpacity="0.4" />
             </linearGradient>
             <linearGradient id="mergedBarGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#c084fc" stopOpacity="0.95" />
-              <stop offset="100%" stopColor="#9333ea" stopOpacity="0.4" />
+              <stop offset="0%" stopColor="#EAA036" stopOpacity="1" />
+              <stop offset="100%" stopColor="#DF9126" stopOpacity="0.75" />
             </linearGradient>
           </defs>
 
@@ -135,7 +135,7 @@ export const ActivityTimelineChart: React.FC<ActivityTimelineChartProps> = ({ pu
             x2={chartWidth}
             y2={chartHeight - 20}
             stroke="currentColor"
-            className="text-zinc-200 dark:text-zinc-800"
+            className="text-[#E5E0D8]"
             strokeWidth="1"
           />
           <line
@@ -144,7 +144,7 @@ export const ActivityTimelineChart: React.FC<ActivityTimelineChartProps> = ({ pu
             x2={chartWidth}
             y2={chartHeight / 2 - 10}
             stroke="currentColor"
-            className="text-zinc-100 dark:text-zinc-800/40"
+            className="text-[#EFECE6]"
             strokeWidth="1"
             strokeDasharray="4 4"
           />
@@ -182,7 +182,7 @@ export const ActivityTimelineChart: React.FC<ActivityTimelineChartProps> = ({ pu
                   rx="3"
                   fill="url(#totalBarGrad)"
                   className={`transition-all duration-150 ${
-                    isHovered ? 'filter drop-shadow(0 0 6px rgba(99,102,241,0.5)) opacity-100' : 'opacity-85'
+                    isHovered ? 'opacity-100' : 'opacity-85'
                   }`}
                 />
 
@@ -205,7 +205,7 @@ export const ActivityTimelineChart: React.FC<ActivityTimelineChartProps> = ({ pu
                     x={x + barWidth / 2}
                     y={chartHeight - 4}
                     textAnchor="middle"
-                    className="text-[9px] fill-zinc-400 dark:fill-zinc-500 font-mono select-none"
+                    className="text-[9px] fill-[#787571] font-mono select-none"
                   >
                     {b.label.split(' - ')[0]}
                   </text>
@@ -217,18 +217,18 @@ export const ActivityTimelineChart: React.FC<ActivityTimelineChartProps> = ({ pu
 
         {/* Floating Tooltip Callout */}
         {activeBucket && (
-          <div className="mt-2.5 p-2 rounded-xl bg-zinc-900 dark:bg-obsidian-950 text-white border border-zinc-800 text-xs font-mono flex items-center justify-between gap-4 animate-fade-in">
-            <span className="text-zinc-400 font-sans">{activeBucket.label}</span>
+          <div className="mt-2.5 p-2 rounded-xl bg-[#161514] text-white border border-[#2E2C29] text-xs font-mono flex items-center justify-between gap-4 animate-fade-in shadow-md">
+            <span className="text-[#D5D0C7] font-sans">{activeBucket.label}</span>
             <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1 text-brand-400">
+              <span className="flex items-center gap-1 text-white">
                 <GitPullRequest className="w-3 h-3" />
                 <strong>{activeBucket.total}</strong> PRs
               </span>
-              <span className="flex items-center gap-1 text-violet-300">
+              <span className="flex items-center gap-1 text-[#EAA036]">
                 <GitMerge className="w-3 h-3" />
                 <strong>{activeBucket.merged}</strong> merged
               </span>
-              <span className="text-zinc-400">
+              <span className="text-[#8F8B83]">
                 ({activeBucket.open} open, {activeBucket.closed} closed)
               </span>
             </div>

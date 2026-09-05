@@ -39,48 +39,48 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
   const contributorOnlyCount = contributors.length - maintainerCount;
 
   return (
-    <div className="w-full my-4 sm:my-6 bg-white dark:bg-obsidian-900 rounded-3xl border border-zinc-200/80 dark:border-zinc-800 p-4 sm:p-6 shadow-xs">
-      {/* Controls Bar - Multi-viewport responsive */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-zinc-100 dark:border-zinc-800/80">
+    <div className="w-full my-4 sm:my-6 bg-white rounded-3xl border border-[#E5E0D8] p-4 sm:p-6 shadow-xs">
+      {/* Controls Bar */}
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-[#E5E0D8]">
         <div>
-          <h3 className="text-base sm:text-lg md:text-xl font-serif font-bold text-zinc-900 dark:text-white flex items-center gap-2 flex-wrap">
+          <h3 className="text-base sm:text-lg md:text-xl font-display font-bold text-[#161514] flex items-center gap-2 flex-wrap">
             <span>Contributors & Applicants</span>
-            <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+            <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-[#EFECE6] text-[#65615B]">
               {filteredContributors.length} of {contributors.length}
             </span>
           </h3>
-          <p className="text-xs text-zinc-500 mt-0.5 font-sans">
-            Select any contributor to inspect their full PR history and repository breakdown.
+          <p className="text-xs text-[#787571] mt-0.5 font-sans">
+            Select any contributor to inspect their complete pull request record and turnaround history.
           </p>
         </div>
 
-        {/* Filter controls - Stacks cleanly on mobile, horizontal on tablet/desktop */}
+        {/* Filter controls */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           {/* Quick Search */}
           <div className="relative flex-1 sm:w-44 lg:w-48">
-            <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-[#8F8B83] absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search user..."
               aria-label="Filter contributors by username"
-              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:border-brand-500 font-mono"
+              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-[#F7F5F0] border border-[#E5E0D8] text-[#161514] placeholder-[#8F8B83] focus:outline-none focus:border-[#EAA036] font-mono"
             />
           </div>
 
           <div className="flex items-center gap-2 justify-between sm:justify-start">
-            {/* Role Filter Tabs - Horizontally scrollable on mobile */}
+            {/* Role Filter Tabs */}
             <div className="overflow-x-auto no-scrollbar py-0.5 max-w-full">
-              <div className="flex items-center gap-0.5 p-1 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-xs w-max" role="tablist" aria-label="Role Filter">
+              <div className="flex items-center gap-0.5 p-1 rounded-xl bg-[#EFECE6] border border-[#E5E0D8] text-xs w-max" role="tablist" aria-label="Role Filter">
                 <button
                   role="tab"
                   aria-selected={roleFilter === 'all'}
                   onClick={() => setRoleFilter('all')}
                   className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
                     roleFilter === 'all'
-                      ? 'bg-white dark:bg-obsidian-900 text-zinc-900 dark:text-white shadow-xs font-semibold'
-                      : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
+                      ? 'bg-white text-[#161514] shadow-xs font-semibold'
+                      : 'text-[#65615B] hover:text-[#161514]'
                   }`}
                 >
                   All ({contributors.length})
@@ -91,8 +91,8 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
                   onClick={() => setRoleFilter('contributors_only')}
                   className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
                     roleFilter === 'contributors_only'
-                      ? 'bg-white dark:bg-obsidian-900 text-brand-600 dark:text-brand-400 shadow-xs font-semibold'
-                      : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
+                      ? 'bg-white text-[#161514] shadow-xs font-semibold'
+                      : 'text-[#65615B] hover:text-[#161514]'
                   }`}
                   title="Isolate community applicants"
                 >
@@ -104,8 +104,8 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
                   onClick={() => setRoleFilter('maintainers_only')}
                   className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
                     roleFilter === 'maintainers_only'
-                      ? 'bg-white dark:bg-obsidian-900 text-champagne-600 dark:text-champagne-400 shadow-xs font-semibold'
-                      : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
+                      ? 'bg-white text-[#9E6212] shadow-xs font-semibold'
+                      : 'text-[#65615B] hover:text-[#161514]'
                   }`}
                 >
                   Maintainers ({maintainerCount})
@@ -118,7 +118,7 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortBy)}
               aria-label="Sort contributors"
-              className="px-2.5 sm:px-3 py-1.5 text-xs rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 focus:outline-none flex-shrink-0"
+              className="px-2.5 sm:px-3 py-1.5 text-xs rounded-xl bg-white border border-[#E5E0D8] text-[#161514] focus:outline-none focus:border-[#EAA036] flex-shrink-0"
             >
               <option value="total">Sort: PRs</option>
               <option value="merged">Sort: Merged</option>
@@ -128,9 +128,9 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
         </div>
       </div>
 
-      {/* Contributor Grid - 1 col on mobile, 2 col on tablet/half-screen, 3 col on large desktop */}
+      {/* Contributor Grid */}
       {filteredContributors.length === 0 ? (
-        <div className="py-12 text-center text-zinc-400 text-xs">
+        <div className="py-12 text-center text-[#787571] text-xs">
           No contributors match the current filter or search criteria.
         </div>
       ) : (
@@ -148,7 +148,7 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
                   onSelectUser(c.username);
                 }
               }}
-              className="group p-3.5 sm:p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-brand-500/40 dark:hover:border-brand-500/40 bg-zinc-50/50 dark:bg-zinc-800/30 hover:bg-white dark:hover:bg-zinc-800/70 transition-all cursor-pointer shadow-xs hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="group p-3.5 sm:p-4 rounded-2xl border border-[#E5E0D8] hover:border-[#EAA036] bg-[#F7F5F0] hover:bg-white transition-all cursor-pointer shadow-2xs hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#EAA036]"
             >
               <div className="flex items-start gap-3">
                 {/* User Avatar */}
@@ -157,14 +157,14 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
                     src={c.avatarUrl}
                     alt=""
                     loading="lazy"
-                    className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl object-cover ring-1 ring-zinc-200 dark:ring-zinc-700"
+                    className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl object-cover ring-1 ring-[#E5E0D8]"
                   />
                   {c.isMaintainer && (
                     <div
-                      className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-champagne-500 text-white flex items-center justify-center ring-2 ring-white dark:ring-obsidian-900"
+                      className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#EAA036] text-[#161514] flex items-center justify-center ring-2 ring-white"
                       title="Verified Maintainer"
                     >
-                      <Shield className="w-2.5 h-2.5" />
+                      <Shield className="w-2.5 h-2.5 fill-[#161514]" />
                     </div>
                   )}
                 </div>
@@ -172,7 +172,7 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1">
-                    <span className="font-semibold text-xs sm:text-sm text-zinc-900 dark:text-white truncate font-mono group-hover:text-brand-500 transition-colors">
+                    <span className="font-semibold text-xs sm:text-sm text-[#161514] truncate font-mono group-hover:text-[#9E6212] transition-colors">
                       {c.username}
                     </span>
                     <a
@@ -181,7 +181,7 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
                       aria-label={`Open @${c.username} on GitHub`}
-                      className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-0.5 rounded focus:outline-none focus-visible:ring-1 focus-visible:ring-brand-500 flex-shrink-0"
+                      className="text-[#8F8B83] hover:text-[#161514] p-0.5 rounded focus:outline-none flex-shrink-0 transition-colors"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                     </a>
@@ -190,12 +190,12 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
                   {/* Role Badge */}
                   <div className="mt-0.5">
                     {c.isMaintainer ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-champagne-700 dark:text-champagne-300 bg-champagne-50 dark:bg-champagne-950/40 px-2 py-0.5 rounded-md border border-champagne-300/60 dark:border-champagne-800/60">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#9E6212] bg-[#EAA036]/15 px-2 py-0.5 rounded-md border border-[#EAA036]/30">
                         <Shield className="w-2.5 h-2.5" />
                         Maintainer
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-950/40 px-2 py-0.5 rounded-md border border-brand-300/60 dark:border-brand-800/60">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#524E48] bg-white px-2 py-0.5 rounded-md border border-[#E5E0D8]">
                         <Users className="w-2.5 h-2.5" />
                         Applicant
                       </span>
@@ -204,13 +204,13 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
 
                   {/* PR Count Pills */}
                   <div className="mt-2 grid grid-cols-3 gap-1 text-[10px] sm:text-[11px] font-mono">
-                    <div className="px-1 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-700/60 text-zinc-700 dark:text-zinc-300 text-center truncate">
+                    <div className="px-1 py-0.5 rounded-md bg-white border border-[#E5E0D8] text-[#161514] text-center truncate">
                       <span className="font-bold">{c.totalPRs}</span> tot
                     </div>
-                    <div className="px-1 py-0.5 rounded-md bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 text-center truncate">
+                    <div className="px-1 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 text-center truncate">
                       <span className="font-bold">{c.mergedPRs}</span> mrg
                     </div>
-                    <div className="px-1 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-center truncate">
+                    <div className="px-1 py-0.5 rounded-md bg-[#EAA036]/10 border border-[#EAA036]/25 text-[#9E6212] text-center truncate">
                       <span className="font-bold">{c.openPRs}</span> opn
                     </div>
                   </div>

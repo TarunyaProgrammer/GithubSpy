@@ -2,38 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Local font bindings for Freight Big Pro & Futura PT */
-@font-face {
-  font-family: 'Freight Big Pro';
-  font-style: normal;
-  font-weight: 500 800;
-  font-display: swap;
-  src: local('Freight Big Pro'), local('FreightBigPro'), local('Freight Big Pro Book'), local('FreightBigPro-Book');
-}
-
-@font-face {
-  font-family: 'Futura PT';
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: local('Futura PT'), local('FuturaPT-Book'), local('Futura PT Book'), local('Futura');
-}
-
 @layer base {
   body {
     @apply antialiased font-sans transition-colors duration-200 overflow-x-hidden;
-    font-family: 'Futura PT', 'Futura', 'Plus Jakarta Sans', -apple-system, sans-serif;
-  }
-
-  h1, h2, h3, h4 {
-    font-family: 'Freight Big Pro', 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
-    letter-spacing: -0.02em;
+    background-color: #F7F5F0;
+    color: #161514;
   }
 
   /* Accessible WCAG focus-visible rings */
   :focus-visible {
-    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-white dark:ring-offset-obsidian-950;
+    @apply outline-none ring-2 ring-ocher-500 ring-offset-2 ring-offset-[#F7F5F0] dark:ring-offset-[#161514];
   }
+}
+
+/* Pleurat Geometric Dotted Grid Canvas */
+.dotted-canvas {
+  background-color: #F7F5F0;
+  background-image: radial-gradient(#D5D0C7 1.25px, transparent 1.25px);
+  background-size: 24px 24px;
+}
+
+.dark .dotted-canvas {
+  background-color: #141312;
+  background-image: radial-gradient(#2E2B27 1.25px, transparent 1.25px);
+  background-size: 24px 24px;
+}
+
+/* Solid architectural card container */
+.architectural-card {
+  @apply bg-white dark:bg-[#1C1B19] border border-ivory-400 dark:border-[#2C2A26] shadow-sm;
 }
 
 /* Hide scrollbar for clean horizontal swipe containers on mobile */
@@ -45,10 +42,10 @@
   scrollbar-width: none;
 }
 
-/* Luxury micro-scrollbars */
+/* Warm Editorial Scrollbars */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -56,11 +53,11 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-zinc-300 dark:bg-zinc-800 rounded-full;
+  @apply bg-ivory-400 dark:bg-[#33312D] rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-brand-400 dark:bg-zinc-700;
+  @apply bg-ocher-500;
 }
 
 /* Reduced motion support */

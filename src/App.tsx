@@ -35,25 +35,11 @@ export function App() {
   const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
   const [tokenActive, setTokenActive] = useState(hasPersonalToken());
 
-  // Dark mode initialized from localStorage or OS preference
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
-    const saved = localStorage.getItem('githubspy_theme');
-    if (saved !== null) {
-      return saved === 'dark';
-    }
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
-
+  // Ensure clean root classes (no dark mode class)
   useEffect(() => {
-    const root = document.documentElement;
-    if (darkMode) {
-      root.classList.add('dark');
-      localStorage.setItem('githubspy_theme', 'dark');
-    } else {
-      root.classList.remove('dark');
-      localStorage.setItem('githubspy_theme', 'light');
-    }
-  }, [darkMode]);
+    document.documentElement.classList.remove('dark');
+    localStorage.removeItem('githubspy_theme');
+  }, []);
 
   // Subscribe to live GitHub response rate-limit updates
   useEffect(() => {
@@ -116,11 +102,9 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-50 dark:bg-[#090a0f] text-zinc-900 dark:text-zinc-100 transition-colors duration-200 overflow-x-hidden">
+    <div className="min-h-screen flex flex-col bg-[#F7F5F0] text-[#161514] font-sans dotted-canvas overflow-x-hidden">
       {/* Top Navigation */}
       <Header
-        darkMode={darkMode}
-        onToggleDarkMode={() => setDarkMode(!darkMode)}
         rateLimit={rateLimit}
         hasPersonalToken={tokenActive}
         onOpenTokenModal={() => setIsTokenModalOpen(true)}
@@ -140,16 +124,16 @@ export function App() {
 
         {/* Error Banner */}
         {error && (
-          <div className="my-4 sm:my-6 p-3.5 sm:p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-800 dark:text-red-300 flex items-start justify-between gap-3 text-xs sm:text-sm animate-fade-in" role="alert">
+          <div className="my-4 sm:my-6 p-3.5 sm:p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-start justify-between gap-3 text-xs sm:text-sm animate-fade-in shadow-xs" role="alert">
             <div className="flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="font-semibold">{error}</p>
                 {error.includes('rate limit') && (
                   <button
                     type="button"
                     onClick={() => setIsTokenModalOpen(true)}
-                    className="mt-2 text-xs font-semibold underline hover:text-red-950 dark:hover:text-red-200 flex items-center gap-1 font-mono"
+                    className="mt-2 text-xs font-semibold underline hover:text-rose-950 flex items-center gap-1 font-mono"
                   >
                     <KeyRound className="w-3.5 h-3.5" /> Add Personal Access Token to unlock 5,000 req/hr
                   </button>
@@ -160,7 +144,7 @@ export function App() {
               type="button"
               onClick={() => setError(null)}
               aria-label="Dismiss error notification"
-              className="text-red-400 hover:text-red-600 text-xs font-mono flex-shrink-0"
+              className="text-rose-400 hover:text-rose-600 text-xs font-mono flex-shrink-0"
             >
               Dismiss
             </button>
@@ -169,9 +153,9 @@ export function App() {
 
         {/* User Fetch Loading Overlay */}
         {loadingUser && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4" aria-live="assertive">
-            <div className="p-4 rounded-2xl bg-white dark:bg-obsidian-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl flex items-center gap-3 text-xs font-mono">
-              <Loader2 className="w-4 h-4 animate-spin text-brand-500 flex-shrink-0" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#161514]/30 backdrop-blur-xs p-4" aria-live="assertive">
+            <div className="p-4 rounded-2xl bg-white border border-[#E5E0D8] shadow-2xl flex items-center gap-3 text-xs font-mono text-[#161514]">
+              <Loader2 className="w-4 h-4 animate-spin text-[#EAA036] flex-shrink-0" />
               <span>Fetching contributor dossier...</span>
             </div>
           </div>
@@ -214,14 +198,14 @@ export function App() {
 
         {/* Empty State */}
         {!stats && !loading && !error && (
-          <div className="mt-12 sm:mt-16 py-10 sm:py-14 px-4 text-center rounded-3xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-obsidian-900/40">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 rounded-2xl bg-zinc-100 dark:bg-zinc-800/80 flex items-center justify-center text-zinc-400">
+          <div className="mt-12 sm:mt-16 py-10 sm:py-14 px-4 text-center rounded-3xl border border-[#E5E0D8] bg-white shadow-xs">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 rounded-2xl bg-[#EFECE6] flex items-center justify-center text-[#787571]">
               <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <h3 className="text-base sm:text-lg font-serif font-bold text-zinc-900 dark:text-white">
-              Radar ready
+            <h3 className="text-base sm:text-lg font-display font-bold text-[#161514]">
+              Terminal ready for reconnaissance
             </h3>
-            <p className="mt-1 text-xs text-zinc-500 max-w-sm mx-auto font-sans leading-relaxed">
+            <p className="mt-1.5 text-xs text-[#787571] max-w-sm mx-auto font-sans leading-relaxed">
               Type any repository URL above or click a preset to access the applicant feasibility index and competitive intelligence.
             </p>
           </div>

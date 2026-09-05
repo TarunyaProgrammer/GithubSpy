@@ -16,39 +16,35 @@ export default {
         '2xl': '1536px',
       },
       colors: {
-        brand: {
-          50: '#eef2ff',
-          100: '#e0e7ff',
-          200: '#c7d2fe',
-          300: '#a5b4fc',
-          400: '#818cf8',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-          800: '#3730a3',
-          900: '#312e81',
-          950: '#1e1b4b',
+        // Pleurat Editorial Warm Amber & Linen Palette
+        ocher: {
+          50: '#FDF8F0',
+          100: '#FBF0E0',
+          200: '#F6DEC1',
+          300: '#F1CCA1',
+          400: '#F3B250',
+          500: '#EAA036', // Signature Pleurat Amber Gold
+          600: '#DF9126',
+          700: '#B97316',
+          800: '#935810',
+          900: '#75440C',
         },
-        champagne: {
-          50: '#fffbeb',
-          100: '#fef3c7',
-          200: '#fde68a',
-          300: '#fcd34d',
-          400: '#fbbf24',
-          500: '#f59e0b',
-          600: '#d97706',
-          700: '#b45309',
-        },
-        obsidian: {
-          800: '#151722',
-          850: '#10121c',
-          900: '#0c0e15',
-          950: '#07080c',
+        ivory: {
+          50: '#FFFFFF',
+          100: '#FAF8F5',
+          200: '#F7F5F0', // Warm Linen Page Canvas
+          300: '#EBE7DF',
+          400: '#E5E0D8', // Architectural Border
+          500: '#D5D0C7', // Dotted Grid Color
+          600: '#A49F96',
+          700: '#787571', // Editorial Stone Dual-Tone Gray
+          800: '#4A4744', // Dark Charcoal Body
+          900: '#161514', // Rich Espresso Headings
         }
       },
       fontFamily: {
-        serif: ['Freight Big Pro', 'Cormorant Garamond', 'Playfair Display', 'Georgia', 'serif'],
-        sans: ['Futura PT', 'Futura', 'Plus Jakarta Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        sans: ['Satoshi', 'General Sans', 'Plus Jakarta Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        display: ['Satoshi', 'General Sans', 'Plus Jakarta Sans', '-apple-system', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
       },
       animation: {
