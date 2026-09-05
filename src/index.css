@@ -11,7 +11,7 @@
 
   /* Accessible WCAG focus-visible rings */
   :focus-visible {
-    @apply outline-none ring-2 ring-ocher-500 ring-offset-2 ring-offset-[#F7F5F0] dark:ring-offset-[#161514];
+    @apply outline-none ring-2 ring-[#EAA036] ring-offset-2 ring-offset-[#F7F5F0];
   }
 }
 
@@ -30,7 +30,7 @@
 
 /* Solid architectural card container */
 .architectural-card {
-  @apply bg-white dark:bg-[#1C1B19] border border-ivory-400 dark:border-[#2C2A26] shadow-sm;
+  @apply bg-white dark:bg-[#1C1B19] border border-[#E5E0D8] dark:border-[#2C2A26] shadow-sm;
 }
 
 /* Hide scrollbar for clean horizontal swipe containers on mobile */
@@ -53,11 +53,11 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-ivory-400 dark:bg-[#33312D] rounded-full;
+  @apply bg-[#E5E0D8] dark:bg-[#33312D] rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-ocher-500;
+  @apply bg-[#EAA036];
 }
 
 /* Reduced motion support */
