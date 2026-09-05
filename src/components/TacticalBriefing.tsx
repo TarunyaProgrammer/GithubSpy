@@ -147,7 +147,7 @@ export const TacticalBriefing: React.FC<TacticalBriefingProps> = ({ intelligence
       {/* Actionable Strategic Takeaway */}
       <div className="mt-3 sm:mt-4 p-3.5 sm:p-4 rounded-2xl bg-[#F7F5F0] border border-[#E5E0D8] text-xs font-sans text-[#423E38]">
         <div className="font-mono text-[11px] font-bold text-[#9E6212] uppercase tracking-wider mb-1 flex items-center gap-1.5">
-          <span>⚡</span>
+          <Zap className="w-3.5 h-3.5 text-[#EAA036] flex-shrink-0" />
           <span>Tactical Guidance for {fullName}</span>
         </div>
         <p className="leading-relaxed text-xs sm:text-[13px]">

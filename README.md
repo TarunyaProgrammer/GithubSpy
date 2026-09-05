@@ -1,4 +1,4 @@
-# GithubSpy 🛰️
+# GithubSpy
 
 [![License: Strict Protective](https://img.shields.io/badge/License-Strict_Protective-blueviolet.svg)](LICENSE)
 [![Author](https://img.shields.io/badge/Author-@TarunyaProgrammer-amber.svg)](https://github.com/TarunyaProgrammer)
@@ -11,14 +11,14 @@ Uncover hidden merge velocity, active review turnarounds, core maintainers vs co
 
 ---
 
-## 🌟 Official Repository & Star
+## Official Repository
 
 Star the official repository to support ongoing development:
-👉 **[github.com/TarunyaProgrammer/GithubSpy](https://github.com/TarunyaProgrammer/GithubSpy)**
+**[github.com/TarunyaProgrammer/GithubSpy](https://github.com/TarunyaProgrammer/GithubSpy)**
 
 ---
 
-## ⚡ Key Intelligence Features
+## Key Intelligence Features
 
 - **Direct-to-Action Terminal**: Zero marketing fluff or slow landing pages. Enter any repository link (`owner/repo`) or click a preset to access real-time data immediately.
 - **Applicant Feasibility Index (AFI)**: A proprietary composite score (0–100) and grade (`PRIME TARGET`, `STRONG TARGET`, `SELECTIVE`) assessing how merge-friendly the maintainer pool is toward external applicants.
@@ -33,7 +33,7 @@ Star the official repository to support ongoing development:
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Clone & Install
 ```bash
@@ -63,7 +63,7 @@ Produces an optimized, tree-shaken static bundle in `dist/` ready to host on Ver
 
 ---
 
-## 🛡️ License & Legal Notice
+## License & Legal Notice
 
 This software is licensed under the **Strict Protective Source License (SPSL)**.
 Copyright (c) 2026 **[TarunyaProgrammer](https://github.com/TarunyaProgrammer)**. All Rights Reserved.
@@ -74,7 +74,7 @@ Copyright (c) 2026 **[TarunyaProgrammer](https://github.com/TarunyaProgrammer)**
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 We welcome community contributions! Please review our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting pull requests.
 

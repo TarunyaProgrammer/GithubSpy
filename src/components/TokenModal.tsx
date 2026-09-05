@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, KeyRound, CheckCircle2, AlertCircle, Trash2, ExternalLink, Loader2 } from 'lucide-react';
+import { X, KeyRound, CheckCircle2, AlertCircle, Trash2, ExternalLink, Loader2, Lock } from 'lucide-react';
 import {
   hasPersonalToken,
   savePersonalToken,
@@ -224,8 +224,11 @@ export const TokenModal: React.FC<TokenModalProps> = ({
 
         {/* Security Note */}
         <div className="pt-2 border-t border-[#E5E0D8] text-[11px] text-[#787571] space-y-1">
-          <p>
-            🔒 <strong>100% Client-Side:</strong> Stored locally in your browser's localStorage and dispatched directly only to GitHub's official API (<code className="font-mono">api.github.com</code>).
+          <p className="flex items-start gap-1.5">
+            <Lock className="w-3.5 h-3.5 text-[#EAA036] flex-shrink-0 mt-0.5" />
+            <span>
+              <strong>100% Client-Side:</strong> Stored locally in your browser's localStorage and dispatched directly only to GitHub's official API (<code className="font-mono">api.github.com</code>).
+            </span>
           </p>
         </div>
       </div>
