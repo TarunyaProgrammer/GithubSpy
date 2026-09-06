@@ -25,7 +25,7 @@ export const CompactCharts: React.FC<CompactChartsProps> = ({ metrics }) => {
   return (
     <section className="grid grid-cols-1 md:grid-cols-2 gap-3 my-4" aria-label="Contribution activity details">
       <article className="rounded-2xl border border-[#E5E0D8] bg-white p-4 sm:p-5">
-        <h3 className="text-base font-display font-bold text-[#161514]">What happened to recent contributions?</h3>
+        <h3 className="text-base font-display font-bold text-[#161514]">What happened to analyzed contributions?</h3>
         <p className="mt-1 text-xs leading-relaxed text-[#787571]">This helps you see whether contributions tend to move forward, stay in review, or stop before merging.</p>
 
         <div className="mt-4 flex h-3 overflow-hidden rounded-md bg-[#EFECE6]" aria-hidden="true">

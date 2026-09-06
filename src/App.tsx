@@ -42,8 +42,12 @@ export function App() {
     localStorage.removeItem('githubspy_theme');
   }, []);
 
-  // Subscribe to live GitHub response rate-limit updates
+  // Subscribe to live GitHub response rate-limit updates & fetch initial quota on mount
   useEffect(() => {
+    checkCurrentRateLimit().then((info) => {
+      if (info) setRateLimit(info);
+    });
+
     const unsubscribe = onRateLimitUpdate((info) => {
       setRateLimit(info);
     });

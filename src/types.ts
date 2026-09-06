@@ -34,6 +34,8 @@ export interface PullRequest {
 export interface RepoMetrics {
   mergeRatePct: number;
   totalPRs: number;
+  totalRepositoryPRs?: number;
+  isDeepAnalyzed?: boolean;
   mergedCount: number;
   openCount: number;
   closedCount: number;
@@ -48,6 +50,7 @@ export interface RepoStats {
   repo: string;
   fullName: string;
   totalPRs: number;
+  totalRepositoryPRs?: number;
   contributors: ContributorStats[];
   recentPRs: PullRequest[];
   metrics: RepoMetrics;

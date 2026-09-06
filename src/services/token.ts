@@ -13,10 +13,14 @@ export function sanitizeToken(raw: string): string {
  * 2. Pre-configured environment token (VITE_GITHUB_TOKEN) if provided
  */
 export function getActiveToken(): string | null {
-  const localToken = localStorage.getItem(TOKEN_STORAGE_KEY);
-  if (localToken) {
-    const cleaned = sanitizeToken(localToken);
-    if (cleaned.length > 0) return cleaned;
+  try {
+    const localToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (localToken) {
+      const cleaned = sanitizeToken(localToken);
+      if (cleaned.length > 0) return cleaned;
+    }
+  } catch {
+    // Non-blocking fallback if storage is restricted
   }
 
   const envToken = import.meta.env.VITE_GITHUB_TOKEN;
@@ -29,17 +33,51 @@ export function getActiveToken(): string | null {
 }
 
 export function hasPersonalToken(): boolean {
-  const localToken = localStorage.getItem(TOKEN_STORAGE_KEY);
-  return Boolean(localToken && sanitizeToken(localToken).length > 0);
+  try {
+    const localToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+    return Boolean(localToken && sanitizeToken(localToken).length > 0);
+  } catch {
+    return false;
+  }
 }
 
 export function savePersonalToken(token: string): void {
-  const cleaned = sanitizeToken(token);
-  localStorage.setItem(TOKEN_STORAGE_KEY, cleaned);
+  try {
+    const cleaned = sanitizeToken(token);
+    localStorage.setItem(TOKEN_STORAGE_KEY, cleaned);
+  } catch {
+    // Non-blocking fallback if storage is full or disabled
+  }
 }
 
 export function removePersonalToken(): void {
-  localStorage.removeItem(TOKEN_STORAGE_KEY);
+  try {
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+  } catch {
+    // Non-blocking fallback
+  }
+}
+
+/**
+ * Return a safe, masked representation of the active personal token
+ * (e.g. "ghp_••••••••ab12") for UI confirmation without revealing secrets.
+ */
+export function getMaskedToken(): string | null {
+  try {
+    const localToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (!localToken) return null;
+    const cleaned = sanitizeToken(localToken);
+    if (!cleaned) return null;
+
+    if (cleaned.length <= 8) {
+      return '••••••••';
+    }
+    const prefix = cleaned.slice(0, 4);
+    const suffix = cleaned.slice(-4);
+    return `${prefix}••••••••${suffix}`;
+  } catch {
+    return null;
+  }
 }
 
 /**

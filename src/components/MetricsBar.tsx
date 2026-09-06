@@ -1,5 +1,5 @@
 import React from 'react';
-import { GitPullRequest, GitMerge, Clock, Shield, Users, RotateCw } from 'lucide-react';
+import { GitPullRequest, GitMerge, Clock, Shield, Users, RotateCw, AlertCircle } from 'lucide-react';
 import type { RepoMetrics } from '../types';
 
 interface MetricsBarProps {
@@ -35,6 +35,10 @@ export const MetricsBar: React.FC<MetricsBarProps> = ({
   isRefreshing,
 }) => {
   const totalContributors = metrics.allTimeContributorsCount || metrics.contributorsCount;
+  const isHugeRepo = Boolean(
+    metrics.totalRepositoryPRs && metrics.totalRepositoryPRs > metrics.totalPRs
+  );
+
   const reviewMessage = metrics.avgMergeTimeHours === null
     ? 'There are not enough merged contributions in this period to estimate review time.'
     : metrics.avgMergeTimeHours <= 72
@@ -52,8 +56,21 @@ export const MetricsBar: React.FC<MetricsBarProps> = ({
             </a>
           </h2>
         </div>
-        <p className="text-xs text-[#787571]">Based on {metrics.totalPRs} pull requests and {totalContributors} known contributors.</p>
+        <p className="text-xs text-[#787571]">
+          {isHugeRepo
+            ? `Based on ${metrics.totalPRs.toLocaleString()} pull requests analyzed (${metrics.totalRepositoryPRs?.toLocaleString()} total in repository) and ${totalContributors} known contributors.`
+            : `Based on ${metrics.totalPRs.toLocaleString()} pull requests and ${totalContributors} known contributors.`}
+        </p>
       </div>
+
+      {isHugeRepo && (
+        <div className="mb-3 flex items-center gap-2 rounded-xl bg-[#EAA036]/10 border border-[#EAA036]/30 px-3.5 py-2 text-xs text-[#9E6212]">
+          <AlertCircle className="w-4 h-4 flex-shrink-0 text-[#9E6212]" />
+          <p>
+            <strong>Large repository:</strong> Analyzed the {metrics.totalPRs.toLocaleString()} most recent pull requests out of {metrics.totalRepositoryPRs?.toLocaleString()} total in project history to protect API limits and performance.
+          </p>
+        </div>
+      )}
 
       {isCached && (
         <div className="mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-xl bg-[#EFECE6] px-3 py-2 text-xs text-[#524E48]">
@@ -68,7 +85,16 @@ export const MetricsBar: React.FC<MetricsBarProps> = ({
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-5 border border-[#E5E0D8] rounded-2xl overflow-hidden bg-white">
-        <Metric icon={GitPullRequest} label="Recent contributions" value={metrics.totalPRs} detail={`${metrics.openCount} still open`} />
+        <Metric
+          icon={GitPullRequest}
+          label="Contributions analyzed"
+          value={metrics.totalPRs.toLocaleString()}
+          detail={
+            isHugeRepo
+              ? `of ${metrics.totalRepositoryPRs?.toLocaleString()} total (${metrics.openCount} open)`
+              : `${metrics.openCount} still open`
+          }
+        />
         <Metric icon={GitMerge} label="Contributions merged" value={`${metrics.mergeRatePct}%`} detail="of the pull requests checked" tone="emerald" />
         <Metric icon={Clock} label="Typical review time" value={formatReviewTime(metrics.avgMergeTimeHours)} detail="from opening to merging" />
         <Metric icon={Shield} label="People reviewing" value={metrics.maintainersCount} detail="maintainers found in this activity" tone="amber" />

@@ -172,21 +172,30 @@ async function fetchPullRequestsViaRest(
   owner: string,
   repo: string,
   fullName: string,
+  filterDate: Date,
   maxPages: number,
   onProgress?: (message: string) => void
-): Promise<{ pullRequests: PullRequest[]; maintainerLogins: string[] }> {
+): Promise<{ pullRequests: PullRequest[]; maintainerLogins: string[]; totalRepositoryPRs: number }> {
   const pullRequests: PullRequest[] = [];
   const maintainerLogins = new Set<string>();
+  const isAllTime = filterDate.getTime() === 0;
 
   for (let page = 1; page <= maxPages; page++) {
-    onProgress?.(`Loading recent contributions (${page} of ${maxPages})…`);
+    onProgress?.(`Loading contributions (page ${page} of ${maxPages})…`);
     const { data: rawPulls } = await fetchGitHubApi(
       `/repos/${owner}/${repo}/pulls?state=all&per_page=100&page=${page}&sort=created&direction=desc`
     );
 
     if (!Array.isArray(rawPulls) || rawPulls.length === 0) break;
 
+    let crossedDateBoundary = false;
     for (const pr of rawPulls) {
+      const createdTime = parseISO(pr.created_at).getTime();
+      if (!isAllTime && createdTime < filterDate.getTime()) {
+        crossedDateBoundary = true;
+        break; // Stop collecting older PRs outside the timeframe
+      }
+
       const authorLogin = pr.user?.login || 'ghost';
       const authorAssociation = pr.author_association || 'NONE';
 
@@ -213,10 +222,14 @@ async function fetchPullRequestsViaRest(
       });
     }
 
-    if (rawPulls.length < 100) break;
+    if (crossedDateBoundary || rawPulls.length < 100) break;
   }
 
-  return { pullRequests, maintainerLogins: Array.from(maintainerLogins) };
+  return {
+    pullRequests,
+    maintainerLogins: Array.from(maintainerLogins),
+    totalRepositoryPRs: pullRequests.length,
+  };
 }
 
 /** Fetch public pull-request activity for a repository. */
@@ -233,13 +246,13 @@ export async function fetchRepoStats(
 
   const { owner, repo } = target;
   const fullName = `${owner}/${repo}`;
-  const rawCacheKey = `repo_raw_${fullName}`;
+  const rawCacheKey = `repo_raw_${fullName}_${timeFilter}`;
 
   onProgress?.(forceRefresh ? `Force refreshing live data for ${fullName}...` : `Inspecting ${fullName}...`);
   const filterDate = getTimeFilterDate(timeFilter);
   const token = getActiveToken();
 
-  // Step 1: Retrieve or fetch raw repository PRs & maintainers (cached for 10 minutes)
+  // Step 1: Retrieve or fetch raw repository PRs & maintainers (cached for 10 minutes per timeframe)
   const { data: rawRepoData, isCached, timestamp } = await appCache.getOrFetch(
     rawCacheKey,
     async () => {
@@ -249,12 +262,13 @@ export async function fetchRepoStats(
       owner,
       repo,
       fullName,
-      token ? 5 : timeFilter === 'all' ? 3 : 2,
+      filterDate,
+      token ? (filterDate.getTime() === 0 ? 10 : 20) : (filterDate.getTime() === 0 ? 5 : 10),
       onProgress
     );
 
     const activityPromise = token
-      ? fetchRepoViaGraphQL(owner, repo).then(async (result) => {
+      ? fetchRepoViaGraphQL(owner, repo, filterDate, onProgress).then(async (result) => {
           if (!result) return fallback();
           if (result.rateLimit) {
             broadcastRateLimit({ ...result.rateLimit, isAuthenticated: true });
@@ -262,6 +276,7 @@ export async function fetchRepoStats(
           return {
             pullRequests: result.pullRequests,
             maintainerLogins: Array.from(result.maintainerLogins),
+            totalRepositoryPRs: result.totalRepositoryPRs,
           };
         })
       : fallback();
@@ -271,6 +286,7 @@ export async function fetchRepoStats(
     return {
       maintainerLogins: activity.maintainerLogins,
       pullRequests: activity.pullRequests,
+      totalRepositoryPRs: activity.totalRepositoryPRs || activity.pullRequests.length,
       officialContributors,
     };
   });
@@ -278,12 +294,8 @@ export async function fetchRepoStats(
   onProgress?.('Putting the project overview together…');
 
   const maintainerLogins = new Set<string>(rawRepoData.maintainerLogins);
-  // Filter cached pull requests by the selected time filter without extra network calls
-  const filteredPullRequests = rawRepoData.pullRequests.filter((pr) =>
-    isAfter(parseISO(pr.created_at), filterDate)
-  );
-
-  const activePRs = filteredPullRequests.length > 0 ? filteredPullRequests : rawRepoData.pullRequests;
+  // Pull requests are already strictly bounded to the requested timeframe at the network layer
+  const activePRs = rawRepoData.pullRequests;
 
   // Map contributors starting with ALL official GitHub commit contributors (90+ contributors)
   const contributorMap = new Map<string, ContributorStats>();
@@ -362,9 +374,14 @@ export async function fetchRepoStats(
   const avgMergeTimeHours =
     mergedWithDatesCount > 0 ? Math.round((totalMergedDurationMinutes / mergedWithDatesCount / 60) * 10) / 10 : null;
 
+  const totalRepositoryPRs = rawRepoData.totalRepositoryPRs || rawRepoData.pullRequests.length;
+  const isDeepAnalyzed = totalRepositoryPRs > totalPRs;
+
   const metrics: RepoMetrics = {
     mergeRatePct,
     totalPRs,
+    totalRepositoryPRs,
+    isDeepAnalyzed,
     mergedCount,
     openCount,
     closedCount,
@@ -379,6 +396,7 @@ export async function fetchRepoStats(
     repo,
     fullName,
     totalPRs,
+    totalRepositoryPRs,
     contributors,
     recentPRs: activePRs,
     metrics,

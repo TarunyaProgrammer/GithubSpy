@@ -66,7 +66,7 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
             </span>
           </h3>
           <p className="text-xs text-[#787571] mt-0.5 font-sans">
-            Pull requests reflect the analyzed timeframe. Commits include all-time Git history (via GitHub API).
+            Pull requests reflect all analyzed contributions across the repository. Commits include all-time Git history (via GitHub API).
           </p>
         </div>
 
@@ -223,9 +223,9 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
                   <div className="mt-2 grid grid-cols-3 gap-1 text-[10px] sm:text-[11px] font-mono">
                     <div
                       className="px-1 py-0.5 rounded-md bg-white border border-[#E5E0D8] text-[#161514] text-center truncate"
-                      title={c.totalPRs > 0 ? `${c.totalPRs} pull requests in analyzed window` : 'No pull requests in this analyzed window (click to view all-time PRs)'}
+                      title={c.totalPRs > 0 ? `${c.totalPRs} pull requests analyzed` : 'No pull requests in analyzed window (click to view user profile)'}
                     >
-                      <span className="font-bold">{c.totalPRs}</span> {c.totalPRs === 0 ? 'rcnt PRs' : 'PRs'}
+                      <span className="font-bold">{c.totalPRs}</span> PRs
                     </div>
                     <div
                       className="px-1 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 text-center truncate"
