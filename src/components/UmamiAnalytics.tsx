@@ -22,7 +22,9 @@ export function UmamiAnalytics() {
     script.src = scriptUrl;
     script.dataset.websiteId = websiteId;
     script.dataset.autoTrack = 'true';
-    script.dataset.excludeHash = 'true';
+    // This app uses hash routes (#repo, #deep, #org, #compare). Keep the hash
+    // so Umami can distinguish those views in the historical dashboard.
+    script.dataset.excludeHash = 'false';
 
     const hostUrl = import.meta.env.VITE_UMAMI_HOST_URL;
     if (hostUrl) script.dataset.hostUrl = hostUrl;
