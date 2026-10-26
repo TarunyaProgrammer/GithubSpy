@@ -478,6 +478,7 @@ export async function fetchDeepFileAnalytics(
         deletions: fileRows.reduce((sum, file) => sum + file.deletions, 0),
         changes: fileRows.reduce((sum, file) => sum + file.changes, 0),
         mergedAt: pr.merged_at,
+        mergeTimeHours: pr.merged_at ? Math.max(0, differenceInMinutes(parseISO(pr.merged_at), parseISO(pr.created_at)) / 60) : null,
       });
 
       for (const file of fileRows) {

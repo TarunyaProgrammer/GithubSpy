@@ -224,7 +224,7 @@ export function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pb-8 sm:pb-12">
-        {view !== 'deep-report' && (
+        {view !== 'deep-report' && view !== 'comparison' && (
           <SearchSection
             onSearch={handleSearch}
             loading={loading}

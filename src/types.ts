@@ -87,7 +87,7 @@ export interface ChangedFileStat {
 
 export interface DeepFileAnalytics {
   files: ChangedFileStat[];
-  prSizes: Array<{ prNumber: number; filesChanged: number; additions: number; deletions: number; changes: number; mergedAt: string | null }>;
+  prSizes: Array<{ prNumber: number; filesChanged: number; additions: number; deletions: number; changes: number; mergedAt: string | null; mergeTimeHours: number | null }>;
   analyzedMergedPRs: number;
   availableMergedPRs: number;
   isPartial: boolean;
