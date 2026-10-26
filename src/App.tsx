@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { Header } from './components/Header';
 import { SearchSection } from './components/SearchSection';
 import { MetricsBar } from './components/MetricsBar';
@@ -404,6 +405,9 @@ export function App() {
 
       {/* Footer */}
       <Footer />
+      
+      {/* Vercel Web Analytics */}
+      <Analytics />
     </div>
   );
 }
