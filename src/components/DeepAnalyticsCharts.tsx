@@ -36,12 +36,13 @@ function ActivityChart({ timeline }: { timeline: DeepAnalyticsSummary['activityT
               <Bar value={item.opened} max={max} color="bg-[#D5D0C7]" title={`${item.opened} opened`} />
               <Bar value={item.merged} max={max} color="bg-emerald-600" title={`${item.merged} merged`} />
               <Bar value={item.closed} max={max} color="bg-[#EAA036]" title={`${item.closed} closed without merge`} />
+              <Bar value={item.open} max={max} color="bg-sky-500" title={`${item.open} still open`} />
             </div>
             <span className="max-w-16 truncate text-[9px] font-mono text-[#787571]">{item.label}</span>
           </div>
         ))}
       </div>
-      <Legend items={[["Opened", "bg-[#D5D0C7]"], ["Merged", "bg-emerald-600"], ["Closed", "bg-[#EAA036]"]]} />
+      <Legend items={[["Opened", "bg-[#D5D0C7]"], ["Merged", "bg-emerald-600"], ["Closed", "bg-[#EAA036]"], ["Still open", "bg-sky-500"]]} />
       <p className="mt-3 text-[10px] text-[#787571]">The thin label below each period is a four-period moving average of opened PRs: {timeline.length ? `${timeline[timeline.length - 1].movingAverage} opened per period recently.` : 'not available.'}</p>
     </ChartShell>
   );
@@ -81,7 +82,7 @@ function MergeFunnelChart({ summary, reviewAnalytics }: { summary: DeepAnalytics
   ];
   const base = funnel.opened || 1;
   return <ChartShell icon={GitPullRequest} title="Merge funnel" description="Where contributions move forward or drop out. Review and approval stages appear after the authenticated deep scan.">
-    <div className="mt-5 grid gap-2 md:grid-cols-4">{stages.map((stage, index) => <div key={stage.label} className="relative rounded-xl bg-[#F7F5F0] p-3"><div className={`h-1.5 rounded ${stage.color}`} style={{ width: `${stage.value === null ? 0 : Math.max((stage.value / base) * 100, stage.value ? 5 : 0)}%` }} /><p className="mt-3 text-[10px] uppercase tracking-wide text-[#787571]">{stage.label}</p><p className="mt-1 text-lg font-display font-bold text-[#161514]">{stage.value === null ? '—' : stage.value}</p>{stage.value !== null && <p className="mt-0.5 text-[10px] text-[#787571]">{Math.round((stage.value / base) * 100)}% of opened</p>}{index < stages.length - 1 && <span className="absolute -right-2 top-12 z-10 hidden text-[#C4BFB6] md:block">→</span>}</div>)}</div>
+    <div className="mt-5 grid gap-2 md:grid-cols-4">{stages.map((stage, index) => { const previous = index === 0 ? base : stages[index - 1].value; const dropOff = stage.value !== null && previous !== null && previous > 0 ? Math.max(0, Math.round((1 - stage.value / previous) * 100)) : null; return <div key={stage.label} className="relative rounded-xl bg-[#F7F5F0] p-3"><div className={`h-1.5 rounded ${stage.color}`} style={{ width: `${stage.value === null ? 0 : Math.max((stage.value / base) * 100, stage.value ? 5 : 0)}%` }} /><p className="mt-3 text-[10px] uppercase tracking-wide text-[#787571]">{stage.label}</p><p className="mt-1 text-lg font-display font-bold text-[#161514]">{stage.value === null ? '—' : stage.value}</p>{stage.value !== null && <p className="mt-0.5 text-[10px] text-[#787571]">{index === 0 ? '100% of opened' : `${dropOff}% drop-off from prior stage`}</p>}{index < stages.length - 1 && <span className="absolute -right-2 top-12 z-10 hidden text-[#C4BFB6] md:block">→</span>}</div>; })}</div>
     <div className="mt-3 flex flex-wrap gap-2 text-[10px] text-[#787571]"><span className="rounded-full bg-[#F7F5F0] px-2.5 py-1">Closed without merge: {funnel.closedWithoutMerge}</span><span className="rounded-full bg-[#F7F5F0] px-2.5 py-1">Still open: {funnel.open}</span>{!reviewAnalytics && <span className="rounded-full bg-[#FFF9EF] px-2.5 py-1 text-[#9E6212]">Add PAT for review stages</span>}</div>
   </ChartShell>;
 }
@@ -142,7 +143,7 @@ function ReviewResponseSection({ analytics, loading, progress, error }: { analyt
 }
 
 function ChartShell({ icon: Icon, title, description, children }: { icon: typeof BarChart3; title: string; description: string; children: React.ReactNode }) { return <article className="rounded-3xl border border-[#E5E0D8] bg-white p-4 shadow-xs sm:p-6"><div className="flex items-start gap-3"><div className="rounded-xl bg-[#EFECE6] p-2 text-[#9E6212]"><Icon className="h-4 w-4" /></div><div><h2 className="text-base font-display font-bold text-[#161514]">{title}</h2><p className="mt-1 text-xs leading-relaxed text-[#787571]">{description}</p></div></div>{children}</article>; }
-function Bar({ value, max, color, title }: { value: number; max: number; color: string; title: string }) { return <div title={title} className={`w-1/3 rounded-t ${color}`} style={{ height: `${Math.max((value / max) * 100, value ? 4 : 0)}%` }} />; }
+function Bar({ value, max, color, title }: { value: number; max: number; color: string; title: string }) { return <div title={title} className={`flex-1 rounded-t ${color}`} style={{ height: `${Math.max((value / max) * 100, value ? 4 : 0)}%` }} />; }
 function Legend({ items }: { items: Array<[string, string]> }) { return <div className="mt-2 flex flex-wrap gap-3 text-[10px] text-[#787571]">{items.map(([label, color]) => <span key={label} className="inline-flex items-center gap-1"><span className={`h-2 w-2 rounded-sm ${color}`} />{label}</span>)}</div>; }
 function EmptyDeepState({ text }: { text: string }) { return <div className="mt-5 rounded-xl border border-dashed border-[#D5D0C7] bg-[#F7F5F0] px-3 py-5 text-xs text-[#787571]">{text}</div>; }
 function ReviewStat({ icon: Icon, label, value }: { icon: typeof Clock3; label: string; value: string }) { return <div className="rounded-xl bg-[#F7F5F0] p-3"><div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-[#787571]"><Icon className="h-3.5 w-3.5 text-[#EAA036]" />{label}</div><p className="mt-2 text-lg font-display font-bold text-[#161514]">{value}</p></div>; }
