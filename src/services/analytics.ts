@@ -1,5 +1,5 @@
 import { differenceInMinutes, format, parseISO } from 'date-fns';
-import type { ChangedFileStat, DeepAnalyticsSummary, PullRequest, TopicOutcomeStat } from '../types';
+import type { ChangedFileStat, DeepAnalyticsSummary, DeepReviewAnalytics, DirectoryFocusStat, PullRequest, TopicOutcomeStat } from '../types';
 
 const STOP_WORDS = new Set([
   'the', 'and', 'for', 'with', 'from', 'this', 'that', 'into', 'when', 'fix', 'fixed', 'add', 'added',
@@ -181,11 +181,19 @@ export function buildDeepAnalyticsSummary(pullRequests: PullRequest[]): DeepAnal
   };
 }
 
-export function buildAIInput(pullRequests: PullRequest[], summary: DeepAnalyticsSummary, files: ChangedFileStat[] = []) {
+export function buildAIInput(pullRequests: PullRequest[], summary: DeepAnalyticsSummary, files: ChangedFileStat[] = [], directories: DirectoryFocusStat[] = [], review: DeepReviewAnalytics | null = null) {
   return {
-    instructions: 'Analyze only the supplied pull requests. Do not infer repository-wide facts. Every focus area must cite supplied PR numbers. Counts and dates must come from the evidence packet.',
+    instructions: 'Analyze only the supplied pull requests and deterministic evidence. Do not infer repository-wide facts. Every focus area must cite supplied PR numbers and distinguish deterministic evidence from interpretation. Counts and dates must come from the evidence packet.',
     summary,
     changedFiles: files.slice(0, 100),
+    directories: directories.slice(0, 40),
+    reviewAnalytics: review ? {
+      funnel: review.funnel,
+      topReviewers: review.topReviewers,
+      topReviewerPct: review.topReviewerPct,
+      topThreeReviewerPct: review.topThreeReviewerPct,
+      rows: review.rows.slice(0, 40),
+    } : null,
     pullRequests: pullRequests.slice(0, 250).map((pr) => ({
       number: pr.number,
       title: pr.title,

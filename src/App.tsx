@@ -175,13 +175,16 @@ export function App() {
           openDeepAfterLoad.current = true;
           handleSearch(repo, '1m', { from: '', to: '' });
         }
+      } else if (hash.startsWith('compare/')) {
+        const repositories = decodeURIComponent(hash.slice(8)).split(',').filter(Boolean);
+        if (repositories.length >= 2) handleCompareRepositories(repositories);
       }
     };
 
     loadFromHash();
     window.addEventListener('hashchange', loadFromHash);
     return () => window.removeEventListener('hashchange', loadFromHash);
-  }, [handleSearch]);
+  }, [handleCompareRepositories, handleSearch]);
 
   const handleSelectUser = useCallback(
     async (username: string) => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { BrainCircuit, ExternalLink, Loader2, ShieldAlert, Sparkles } from 'lucide-react';
 import type { AIRepositoryAnalysis } from '../types';
 import { generateRepositoryAIAnalysis, type AIConfig, type AIProvider } from '../services/ai';
@@ -19,12 +19,22 @@ export const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({ evidence }) =>
   const [analysis, setAnalysis] = useState<AIRepositoryAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const evidenceKey = useMemo(() => hashEvidence(JSON.stringify(evidence)), [evidence]);
 
   const runAnalysis = async () => {
     setLoading(true);
     setError(null);
     try {
-      setAnalysis(await generateRepositoryAIAnalysis(evidence, { provider, model, apiKey }));
+      const cacheKey = `githubspy_ai_${provider}_${model}_${evidenceKey}`;
+      let cached: string | null = null;
+      try { cached = sessionStorage.getItem(cacheKey); } catch { /* Private browsing can block session storage. */ }
+      if (cached) {
+        setAnalysis(JSON.parse(cached) as AIRepositoryAnalysis);
+        return;
+      }
+      const result = await generateRepositoryAIAnalysis(evidence, { provider, model, apiKey });
+      try { sessionStorage.setItem(cacheKey, JSON.stringify(result)); } catch { /* Keep the result usable if storage is unavailable. */ }
+      setAnalysis(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'The AI provider could not analyze this report.');
     } finally {
@@ -79,4 +89,10 @@ function AIResult({ analysis }: { analysis: AIRepositoryAnalysis }) {
     {!!analysis.caveats.length && <div className="text-[10px] leading-relaxed text-[#787571]">Caveats: {analysis.caveats.join(' ')}</div>}
     <a className="inline-flex items-center gap-1 text-[10px] font-mono text-[#9E6212]" href="https://ai.google.dev/gemini-api/docs/structured-output" target="_blank" rel="noopener noreferrer">Structured output guidance <ExternalLink className="h-3 w-3" /></a>
   </div>;
+}
+
+function hashEvidence(value: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) hash = Math.imul(hash ^ value.charCodeAt(index), 16777619);
+  return (hash >>> 0).toString(36);
 }

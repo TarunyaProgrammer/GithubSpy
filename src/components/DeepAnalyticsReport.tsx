@@ -67,7 +67,7 @@ export const DeepAnalyticsReport: React.FC<DeepAnalyticsReportProps> = ({ stats,
       .finally(() => setReviewLoading(false));
   }, [hasPersonalToken, reviewAnalytics, reviewLoading, stats.owner, stats.repo, stats.recentPRs]);
 
-  const evidence = useMemo(() => buildAIInput(filteredPRs, summary, fileAnalytics?.files || []), [filteredPRs, summary, fileAnalytics]);
+  const evidence = useMemo(() => buildAIInput(filteredPRs, summary, fileAnalytics?.files || [], fileAnalytics?.directories || [], reviewAnalytics), [filteredPRs, summary, fileAnalytics, reviewAnalytics]);
 
   return (
     <section className="space-y-4 sm:space-y-6 animate-fade-in" aria-labelledby="deep-report-title">
