@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { BarChart3, Clock3, GitPullRequest, MessageSquare, Ruler, Users } from 'lucide-react';
+import { BarChart3, Clock3, GitPullRequest, Hourglass, MessageSquare, Ruler, Users } from 'lucide-react';
 import type { DeepAnalyticsSummary, DeepFileAnalytics, DeepReviewAnalytics } from '../types';
 
 interface DeepAnalyticsChartsProps {
@@ -17,6 +17,7 @@ export const DeepAnalyticsCharts: React.FC<DeepAnalyticsChartsProps> = ({ summar
       <ActivityChart timeline={summary.activityTimeline} />
       <MergeTimeChart buckets={summary.mergeTimeBuckets} />
     </section>
+    <OpenAgeChart buckets={summary.openAgeBuckets} />
     <SizeChart fileAnalytics={fileAnalytics} />
     <ReviewResponseSection analytics={reviewAnalytics} loading={reviewLoading} progress={reviewProgress} error={reviewError} />
   </div>
@@ -57,6 +58,28 @@ function MergeTimeChart({ buckets }: { buckets: DeepAnalyticsSummary['mergeTimeB
         ))}
       </div>
       <p className="mt-4 text-[10px] text-[#787571]">Use the median and 75th percentile above when comparing repositories; a bucket count alone is not a performance score.</p>
+    </ChartShell>
+  );
+}
+
+function OpenAgeChart({ buckets }: { buckets: DeepAnalyticsSummary['openAgeBuckets'] }) {
+  const max = Math.max(...buckets.map((bucket) => bucket.count), 1);
+  const total = buckets.reduce((sum, bucket) => sum + bucket.count, 0);
+  return (
+    <ChartShell icon={Hourglass} title="Open PR aging" description="How long currently open pull requests have been waiting, measured from their opening date to now.">
+      {total ? <div className="mt-5 grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
+        <div className="flex h-40 items-end gap-3 overflow-x-auto border-b border-[#E5E0D8] pb-6">
+          {buckets.map((bucket) => <div key={bucket.label} className="flex min-w-16 flex-1 flex-col items-center justify-end gap-2">
+            <span className="text-[10px] font-mono text-[#65615B]">{bucket.count}</span>
+            <div className="w-full max-w-16 rounded-t bg-[#9E6212]" style={{ height: `${Math.max((bucket.count / max) * 100, bucket.count ? 5 : 0)}%` }} title={`${bucket.count} open PRs in ${bucket.label}`} />
+            <span className="text-center text-[9px] leading-tight text-[#787571]">{bucket.label}</span>
+          </div>)}
+        </div>
+        <div className="rounded-xl bg-[#F7F5F0] p-3 text-xs text-[#65615B] md:max-w-56">
+          <p className="font-display font-bold text-[#161514]">{total} open PR{total === 1 ? '' : 's'}</p>
+          <p className="mt-1 leading-relaxed">Older queues can reveal review bottlenecks that merge-time averages hide.</p>
+        </div>
+      </div> : <EmptyDeepState text="No open pull requests were found in the selected period." />}
     </ChartShell>
   );
 }

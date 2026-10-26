@@ -37,6 +37,17 @@ export function buildDeepAnalyticsSummary(pullRequests: PullRequest[]): DeepAnal
     ['7–30d', 0],
     ['30d+', 0],
   ]);
+  const openAgeBuckets = new Map<string, number>([
+    ['Under 2d', 0],
+    ['2–7d', 0],
+    ['8–30d', 0],
+    ['31–90d', 0],
+    ['90d+', 0],
+  ]);
+  openAges.forEach((hours) => {
+    const bucket = hours < 48 ? 'Under 2d' : hours < 168 ? '2–7d' : hours < 720 ? '8–30d' : hours < 2160 ? '31–90d' : '90d+';
+    openAgeBuckets.set(bucket, (openAgeBuckets.get(bucket) || 0) + 1);
+  });
   for (const pr of pullRequests) {
     const openedLabel = format(parseISO(pr.created_at), 'MMM yyyy');
     const openedBucket = timelineMap.get(openedLabel) || { opened: 0, merged: 0, closed: 0 };
@@ -96,6 +107,7 @@ export function buildDeepAnalyticsSummary(pullRequests: PullRequest[]): DeepAnal
       .slice(0, 20),
     activityTimeline: Array.from(timelineMap.entries()).sort(([a], [b]) => new Date(`1 ${a}`).getTime() - new Date(`1 ${b}`).getTime()).map(([label, values]) => ({ label, ...values })),
     mergeTimeBuckets: Array.from(mergeBuckets.entries()).map(([label, count]) => ({ label, count })),
+    openAgeBuckets: Array.from(openAgeBuckets.entries()).map(([label, count]) => ({ label, count })),
   };
 }
 

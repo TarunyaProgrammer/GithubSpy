@@ -54,6 +54,7 @@ export interface DeepAnalyticsSummary {
   topicCandidates: Array<{ topic: string; mentions: number; mergedMentions: number; prNumbers: number[] }>;
   activityTimeline: Array<{ label: string; opened: number; merged: number; closed: number }>;
   mergeTimeBuckets: Array<{ label: string; count: number }>;
+  openAgeBuckets: Array<{ label: string; count: number }>;
 }
 
 export interface AIInsightTopic {
