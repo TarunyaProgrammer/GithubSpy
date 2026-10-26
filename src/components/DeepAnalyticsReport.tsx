@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BarChart3, Clock3, Compass, FolderTree, GitMerge, GitPullRequest, Gauge, ShieldCheck, Target, Users, TrendingUp } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import type { DateRange, DeepFileAnalytics, DirectoryFocusStat, RepoStats, TimeFilter } from '../types';
+import type { DateRange, DeepFileAnalytics, DirectoryFocusStat, RepoStats, RoleFilter, TimeFilter } from '../types';
 import { buildAIInput, buildDeepAnalyticsSummary } from '../services/analytics';
 import { fetchDeepFileAnalytics, fetchDeepReviewAnalytics } from '../services/github';
 import { AIInsightsPanel } from './AIInsightsPanel';
@@ -25,8 +25,10 @@ const PRESET_LABELS: Record<Exclude<TimeFilter, 'custom'>, string> = {
 };
 
 export const DeepAnalyticsReport: React.FC<DeepAnalyticsReportProps> = ({ stats, timeFilter, dateRange, onBack, hasPersonalToken, onOpenTokenModal }) => {
-  const summary = useMemo(() => buildDeepAnalyticsSummary(stats.recentPRs), [stats.recentPRs]);
   const scopeLabel = getScopeLabel(timeFilter, dateRange);
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
+  const [labelFilter, setLabelFilter] = useState('all');
+  const [reviewerFilter, setReviewerFilter] = useState('all');
   const [fileAnalytics, setFileAnalytics] = useState<DeepFileAnalytics | null>(null);
   const [fileLoading, setFileLoading] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -35,6 +37,17 @@ export const DeepAnalyticsReport: React.FC<DeepAnalyticsReportProps> = ({ stats,
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [reviewProgress, setReviewProgress] = useState('');
+
+  const labels = useMemo(() => Array.from(new Set(stats.recentPRs.flatMap((pr) => pr.labels || []))).sort((a, b) => a.localeCompare(b)), [stats.recentPRs]);
+  const reviewers = reviewAnalytics?.topReviewers.map((reviewer) => reviewer.username) || [];
+  const filteredPRs = useMemo(() => stats.recentPRs.filter((pr) => {
+    const maintainer = ['OWNER', 'MEMBER', 'COLLABORATOR'].includes(pr.author_association || '');
+    const roleMatches = roleFilter === 'all' || (roleFilter === 'maintainers_only' ? maintainer : !maintainer);
+    const labelMatches = labelFilter === 'all' || (pr.labels || []).includes(labelFilter);
+    const reviewerMatches = reviewerFilter === 'all' || Boolean(reviewAnalytics?.rows.find((row) => row.prNumber === pr.number)?.reviewerLogins.includes(reviewerFilter));
+    return roleMatches && labelMatches && reviewerMatches;
+  }), [labelFilter, reviewerFilter, reviewAnalytics, roleFilter, stats.recentPRs]);
+  const summary = useMemo(() => buildDeepAnalyticsSummary(filteredPRs), [filteredPRs]);
 
   useEffect(() => {
     if (!hasPersonalToken || fileAnalytics || fileLoading) return;
@@ -54,7 +67,7 @@ export const DeepAnalyticsReport: React.FC<DeepAnalyticsReportProps> = ({ stats,
       .finally(() => setReviewLoading(false));
   }, [hasPersonalToken, reviewAnalytics, reviewLoading, stats.owner, stats.repo, stats.recentPRs]);
 
-  const evidence = useMemo(() => buildAIInput(stats.recentPRs, summary, fileAnalytics?.files || []), [stats.recentPRs, summary, fileAnalytics]);
+  const evidence = useMemo(() => buildAIInput(filteredPRs, summary, fileAnalytics?.files || []), [filteredPRs, summary, fileAnalytics]);
 
   return (
     <section className="space-y-4 sm:space-y-6 animate-fade-in" aria-labelledby="deep-report-title">
@@ -70,6 +83,7 @@ export const DeepAnalyticsReport: React.FC<DeepAnalyticsReportProps> = ({ stats,
           <div className="rounded-2xl border border-[#EAA036]/35 bg-[#FFF9EF] px-3 py-2 text-right"><p className="text-[10px] font-medium uppercase tracking-wide text-[#9E6212]">Analysis window</p><p className="mt-1 text-xs font-semibold text-[#161514]">{scopeLabel}</p><p className="mt-1 text-[10px] text-[#787571]">{summary.totalPRs.toLocaleString()} PRs in evidence</p></div>
         </div>
         <div className="mt-5 flex flex-wrap gap-2 text-[10px] font-mono text-[#787571]"><span className="rounded-full bg-[#EFECE6] px-2.5 py-1">All metrics below use this window</span><span className="rounded-full bg-[#EFECE6] px-2.5 py-1">Cached GitHub evidence: {stats.isCached ? 'yes' : 'no'}</span>{stats.metrics.totalRepositoryPRs && stats.metrics.totalRepositoryPRs > summary.totalPRs && <span className="rounded-full bg-[#FFF9EF] px-2.5 py-1 text-[#9E6212]">Repository total exceeds fetched window</span>}</div>
+        <EvidenceFilters roleFilter={roleFilter} labelFilter={labelFilter} reviewerFilter={reviewerFilter} labels={labels} reviewers={reviewers} onRoleChange={setRoleFilter} onLabelChange={setLabelFilter} onReviewerChange={setReviewerFilter} onClear={() => { setRoleFilter('all'); setLabelFilter('all'); setReviewerFilter('all'); }} filteredCount={filteredPRs.length} totalCount={stats.recentPRs.length} />
       </header>
 
       <section className="grid grid-cols-2 gap-2 lg:grid-cols-4" aria-label="Deep analytics summary">
@@ -121,9 +135,16 @@ function DecisionSummary({ summary, scopeLabel }: { summary: ReturnType<typeof b
 
 function DecisionItem({ icon: Icon, label, value }: { icon: typeof Target; label: string; value: string }) { return <div className="rounded-xl border border-white/10 bg-white/5 p-3"><div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-[#BDB8AF]"><Icon className="h-3.5 w-3.5 text-[#EAA036]" />{label}</div><p className="mt-2 text-sm font-semibold leading-snug text-white">{value}</p></div>; }
 
+function EvidenceFilters({ roleFilter, labelFilter, reviewerFilter, labels, reviewers, onRoleChange, onLabelChange, onReviewerChange, onClear, filteredCount, totalCount }: { roleFilter: RoleFilter; labelFilter: string; reviewerFilter: string; labels: string[]; reviewers: string[]; onRoleChange: (value: RoleFilter) => void; onLabelChange: (value: string) => void; onReviewerChange: (value: string) => void; onClear: () => void; filteredCount: number; totalCount: number }) {
+  const selectClass = 'rounded-xl border border-[#E5E0D8] bg-white px-3 py-2 text-xs text-[#161514] outline-none focus:border-[#EAA036]';
+  return <div className="mt-5 rounded-2xl border border-[#E5E0D8] bg-[#F7F5F0] p-3"><div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"><label className="grid gap-1 text-[10px] font-semibold uppercase tracking-wide text-[#787571]">Author role<select value={roleFilter} onChange={(event) => onRoleChange(event.target.value as RoleFilter)} className={selectClass}><option value="all">Everyone</option><option value="contributors_only">Community authors</option><option value="maintainers_only">Maintainer-associated</option></select></label><label className="grid gap-1 text-[10px] font-semibold uppercase tracking-wide text-[#787571]">Label<select value={labelFilter} onChange={(event) => onLabelChange(event.target.value)} className={selectClass}><option value="all">All labels</option>{labels.map((label) => <option key={label} value={label}>{label}</option>)}</select></label><label className="grid gap-1 text-[10px] font-semibold uppercase tracking-wide text-[#787571]">Reviewer<select value={reviewerFilter} onChange={(event) => onReviewerChange(event.target.value)} className={selectClass}><option value="all">All reviewers</option>{reviewers.map((reviewer) => <option key={reviewer} value={reviewer}>{reviewer}</option>)}</select></label><button type="button" onClick={onClear} className="rounded-xl border border-[#D5D0C7] bg-white px-3 py-2 text-xs font-semibold text-[#65615B] hover:border-[#EAA036]">Clear filters</button><span className="text-[10px] font-mono text-[#787571]">Showing {filteredCount} of {totalCount} PRs</span></div>{!reviewers.length && <p className="mt-2 text-[10px] text-[#9E6212]">Reviewer filters become available after the PAT-backed review scan finishes.</p>}</div>;
+}
+
 function DirectoryFocusSection({ analytics, scopeLabel }: { analytics: DeepFileAnalytics | null; scopeLabel: string }) {
   const directories = analytics?.directories || [];
-  return <section className="rounded-3xl border border-[#E5E0D8] bg-white p-4 shadow-xs sm:p-6"><div className="flex items-start gap-3"><div className="rounded-xl bg-[#EFECE6] p-2 text-[#9E6212]"><FolderTree className="h-4 w-4" /></div><div><h2 className="text-base font-display font-bold text-[#161514]">Directory focus and opportunity</h2><p className="mt-1 text-xs leading-relaxed text-[#787571]">Merged work concentration and contributor breadth in the selected scan for {scopeLabel}.</p></div></div>{analytics ? <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[720px] text-left text-xs"><thead className="bg-[#F7F5F0] text-[10px] uppercase tracking-wide text-[#787571]"><tr><th className="rounded-l-lg px-3 py-2">Area</th><th className="px-3 py-2">Merged / scanned</th><th className="px-3 py-2">Merge rate</th><th className="px-3 py-2">Median merge</th><th className="px-3 py-2">Contributors</th><th className="rounded-r-lg px-3 py-2">Evidence</th></tr></thead><tbody className="divide-y divide-[#E5E0D8]">{directories.slice(0, 12).map((directory) => <tr key={directory.path}><td className="px-3 py-2.5 font-mono font-semibold">{directory.path}</td><td className="px-3 py-2.5 font-mono">{directory.mergedPRs}/{directory.totalPRs}</td><td className="px-3 py-2.5 font-mono text-[#9E6212]">{directory.mergeRatePct}%</td><td className="px-3 py-2.5 font-mono">{formatHours(directory.medianMergeTimeHours)}</td><td className="px-3 py-2.5 font-mono">{directory.uniqueContributors}</td><td className="px-3 py-2.5 font-mono text-[10px] text-[#787571]">#{directory.prNumbers.slice(0, 4).join(', #')}</td></tr>)}</tbody></table>{!directories.length && <p className="py-5 text-xs text-[#787571]">No directory metadata was returned.</p>}</div> : <div className="mt-4 rounded-xl border border-dashed border-[#D5D0C7] bg-[#F7F5F0] px-3 py-5 text-xs text-[#787571]">Connect a GitHub PAT to scan directory-level changed-file evidence.</div>}</section>;
+  const [selectedDirectory, setSelectedDirectory] = useState('all');
+  const visibleDirectories = selectedDirectory === 'all' ? directories.slice(0, 12) : directories.filter((directory) => directory.path === selectedDirectory);
+  return <section className="rounded-3xl border border-[#E5E0D8] bg-white p-4 shadow-xs sm:p-6"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="flex items-start gap-3"><div className="rounded-xl bg-[#EFECE6] p-2 text-[#9E6212]"><FolderTree className="h-4 w-4" /></div><div><h2 className="text-base font-display font-bold text-[#161514]">Directory focus and opportunity</h2><p className="mt-1 text-xs leading-relaxed text-[#787571]">Merged work concentration and contributor breadth in the selected scan for {scopeLabel}.</p></div></div>{analytics && <select value={selectedDirectory} onChange={(event) => setSelectedDirectory(event.target.value)} className="rounded-xl border border-[#E5E0D8] bg-white px-3 py-2 text-xs text-[#161514]"><option value="all">Top directories</option>{directories.map((directory) => <option key={directory.path} value={directory.path}>{directory.path}</option>)}</select>}</div>{analytics ? <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[720px] text-left text-xs"><thead className="bg-[#F7F5F0] text-[10px] uppercase tracking-wide text-[#787571]"><tr><th className="rounded-l-lg px-3 py-2">Area</th><th className="px-3 py-2">Merged / scanned</th><th className="px-3 py-2">Merge rate</th><th className="px-3 py-2">Median merge</th><th className="px-3 py-2">Contributors</th><th className="rounded-r-lg px-3 py-2">Evidence</th></tr></thead><tbody className="divide-y divide-[#E5E0D8]">{visibleDirectories.map((directory) => <tr key={directory.path}><td className="px-3 py-2.5 font-mono font-semibold">{directory.path}</td><td className="px-3 py-2.5 font-mono">{directory.mergedPRs}/{directory.totalPRs}</td><td className="px-3 py-2.5 font-mono text-[#9E6212]">{directory.mergeRatePct}%</td><td className="px-3 py-2.5 font-mono">{formatHours(directory.medianMergeTimeHours)}</td><td className="px-3 py-2.5 font-mono">{directory.uniqueContributors}</td><td className="px-3 py-2.5 font-mono text-[10px] text-[#787571]">#{directory.prNumbers.slice(0, 4).join(', #')}</td></tr>)}</tbody></table>{!directories.length && <p className="py-5 text-xs text-[#787571]">No directory metadata was returned.</p>}</div> : <div className="mt-4 rounded-xl border border-dashed border-[#D5D0C7] bg-[#F7F5F0] px-3 py-5 text-xs text-[#787571]">Connect a GitHub PAT to scan directory-level changed-file evidence.</div>}</section>;
 }
 
 function MaintainerActivity({ items }: { items: ReturnType<typeof buildDeepAnalyticsSummary>['topMaintainerActivity'] }) {
