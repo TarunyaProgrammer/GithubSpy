@@ -11,6 +11,7 @@ import type {
   OrganizationStats,
   RepositorySummary,
   ChangedFileStat,
+  DirectoryFocusStat,
   DeepFileAnalytics,
   DeepReviewAnalytics,
 } from '../types';
@@ -445,11 +446,16 @@ export async function fetchDeepFileAnalytics(
   pullRequests: PullRequest[],
   onProgress?: (message: string) => void
 ): Promise<DeepFileAnalytics> {
-  const mergedPRs = pullRequests
-    .filter((pr) => Boolean(pr.merged_at))
-    .sort((a, b) => new Date(b.merged_at as string).getTime() - new Date(a.merged_at as string).getTime());
-  const selectedPRs = mergedPRs.slice(0, 25);
+  const mergedPRs = pullRequests.filter((pr) => Boolean(pr.merged_at));
+  const selectedPRs = [...pullRequests]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 40);
   const fileMap = new Map<string, ChangedFileStat>();
+  const directoryMap = new Map<string, DirectoryFocusStat>();
+  const fileContributors = new Map<string, Set<string>>();
+  const directoryContributors = new Map<string, Set<string>>();
+  const fileMergeTimes = new Map<string, number[]>();
+  const directoryMergeTimes = new Map<string, number[]>();
   const prSizes: DeepFileAnalytics['prSizes'] = [];
 
   for (let index = 0; index < selectedPRs.length; index += 1) {
@@ -471,33 +477,82 @@ export async function fetchDeepFileAnalytics(
       );
 
       const fileRows = result.data as Array<{ path: string; additions: number; deletions: number; changes: number }>;
-      prSizes.push({
-        prNumber: pr.number,
-        filesChanged: fileRows.length,
-        additions: fileRows.reduce((sum, file) => sum + file.additions, 0),
-        deletions: fileRows.reduce((sum, file) => sum + file.deletions, 0),
-        changes: fileRows.reduce((sum, file) => sum + file.changes, 0),
-        mergedAt: pr.merged_at,
-        mergeTimeHours: pr.merged_at ? Math.max(0, differenceInMinutes(parseISO(pr.merged_at), parseISO(pr.created_at)) / 60) : null,
-      });
+      const mergeTimeHours = pr.merged_at ? Math.max(0, differenceInMinutes(parseISO(pr.merged_at), parseISO(pr.created_at)) / 60) : null;
+      if (pr.merged_at) {
+        prSizes.push({
+          prNumber: pr.number,
+          filesChanged: fileRows.length,
+          additions: fileRows.reduce((sum, file) => sum + file.additions, 0),
+          deletions: fileRows.reduce((sum, file) => sum + file.deletions, 0),
+          changes: fileRows.reduce((sum, file) => sum + file.changes, 0),
+          mergedAt: pr.merged_at,
+          mergeTimeHours,
+        });
+      }
 
       for (const file of fileRows) {
+        const directory = getDirectory(file.path);
         const current = fileMap.get(file.path) || {
           path: file.path,
           additions: 0,
           deletions: 0,
           changes: 0,
+          totalPRs: 0,
           mergedPRs: 0,
           maintainerMergedPRs: 0,
+          uniqueContributors: 0,
+          medianMergeTimeHours: null,
           prNumbers: [],
         };
         current.additions += file.additions;
         current.deletions += file.deletions;
         current.changes += file.changes;
-        current.mergedPRs += 1;
-        if (['OWNER', 'MEMBER', 'COLLABORATOR'].includes(pr.author_association || '')) current.maintainerMergedPRs += 1;
+        current.totalPRs += 1;
+        if (pr.merged_at) current.mergedPRs += 1;
+        if (pr.merged_at && ['OWNER', 'MEMBER', 'COLLABORATOR'].includes(pr.author_association || '')) current.maintainerMergedPRs += 1;
         if (!current.prNumbers.includes(pr.number)) current.prNumbers.push(pr.number);
+        const fileContributorSet = fileContributors.get(file.path) || new Set<string>();
+        fileContributorSet.add(pr.user.login);
+        fileContributors.set(file.path, fileContributorSet);
+        current.uniqueContributors = fileContributorSet.size;
+        if (mergeTimeHours !== null) {
+          const mergeTimes = fileMergeTimes.get(file.path) || [];
+          mergeTimes.push(mergeTimeHours);
+          fileMergeTimes.set(file.path, mergeTimes);
+          current.medianMergeTimeHours = medianNumber(mergeTimes);
+        }
         fileMap.set(file.path, current);
+
+        const directoryRow = directoryMap.get(directory) || {
+          path: directory,
+          totalPRs: 0,
+          mergedPRs: 0,
+          maintainerMergedPRs: 0,
+          mergeRatePct: 0,
+          additions: 0,
+          deletions: 0,
+          medianMergeTimeHours: null,
+          uniqueContributors: 0,
+          prNumbers: [],
+        };
+        directoryRow.totalPRs += 1;
+        if (pr.merged_at) directoryRow.mergedPRs += 1;
+        if (pr.merged_at && ['OWNER', 'MEMBER', 'COLLABORATOR'].includes(pr.author_association || '')) directoryRow.maintainerMergedPRs += 1;
+        directoryRow.additions += file.additions;
+        directoryRow.deletions += file.deletions;
+        if (!directoryRow.prNumbers.includes(pr.number)) directoryRow.prNumbers.push(pr.number);
+        const directoryContributorSet = directoryContributors.get(directory) || new Set<string>();
+        directoryContributorSet.add(pr.user.login);
+        directoryContributors.set(directory, directoryContributorSet);
+        directoryRow.uniqueContributors = directoryContributorSet.size;
+        if (mergeTimeHours !== null) {
+          const mergeTimes = directoryMergeTimes.get(directory) || [];
+          mergeTimes.push(mergeTimeHours);
+          directoryMergeTimes.set(directory, mergeTimes);
+          directoryRow.medianMergeTimeHours = medianNumber(mergeTimes);
+        }
+        directoryRow.mergeRatePct = directoryRow.totalPRs ? Math.round((directoryRow.mergedPRs / directoryRow.totalPRs) * 100) : 0;
+        directoryMap.set(directory, directoryRow);
       }
     } catch {
       // A single inaccessible PR should not invalidate the rest of the report.
@@ -506,11 +561,23 @@ export async function fetchDeepFileAnalytics(
 
   return {
     files: Array.from(fileMap.values()).sort((a, b) => b.maintainerMergedPRs - a.maintainerMergedPRs || b.mergedPRs - a.mergedPRs || b.changes - a.changes),
+    directories: Array.from(directoryMap.values()).sort((a, b) => b.mergedPRs - a.mergedPRs || b.totalPRs - a.totalPRs || b.additions - a.additions),
     prSizes,
-    analyzedMergedPRs: selectedPRs.length,
+    analyzedMergedPRs: selectedPRs.filter((pr) => Boolean(pr.merged_at)).length,
     availableMergedPRs: mergedPRs.length,
-    isPartial: mergedPRs.length > selectedPRs.length,
+    isPartial: pullRequests.length > selectedPRs.length,
   };
+}
+
+function getDirectory(path: string): string {
+  const separator = path.indexOf('/');
+  return separator === -1 ? '(root)' : path.slice(0, separator);
+}
+
+function medianNumber(values: number[]): number | null {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  return Math.round(sorted[Math.floor((sorted.length - 1) * 0.5)] * 10) / 10;
 }
 
 /** Explicit review-event scan used only by the deep report. */
@@ -524,6 +591,7 @@ export async function fetchDeepReviewAnalytics(
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 30);
   const rows: DeepReviewAnalytics['rows'] = [];
+  const reviewerMap = new Map<string, { reviewedPRs: number; approvals: number }>();
 
   for (let index = 0; index < candidates.length; index += 1) {
     const pr = candidates[index];
@@ -537,29 +605,76 @@ export async function fetchDeepReviewAnalytics(
         },
         30 * 60 * 1000
       );
-      const reviews = (result.data as any[]).filter((review) => review.submitted_at && review.state !== 'PENDING');
+      const reviews = (result.data as any[])
+        .filter((review) => review.submitted_at && review.state !== 'PENDING')
+        .sort((a, b) => new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime());
+      let commentCount = 0;
+      try {
+        const commentResult = await appCache.getOrFetch(
+          `pr_review_comments_${owner}_${repo}_${pr.number}`,
+          async () => {
+            const { data } = await fetchGitHubApi(`/repos/${owner}/${repo}/pulls/${pr.number}/comments?per_page=100`);
+            return Array.isArray(data) ? data.length : 0;
+          },
+          30 * 60 * 1000
+        );
+        commentCount = Number(commentResult.data || 0);
+      } catch {
+        commentCount = 0;
+      }
       const firstReview = reviews[0];
       const maintainerReview = reviews.find((review) => ['OWNER', 'MEMBER', 'COLLABORATOR'].includes(review.author_association || ''));
+      const firstApproval = reviews.find((review) => review.state === 'APPROVED');
       const hoursBetween = (timestamp?: string) => timestamp ? Math.max(0, differenceInMinutes(parseISO(timestamp), parseISO(pr.created_at)) / 60) : null;
+      const firstApprovalHours = hoursBetween(firstApproval?.submitted_at);
       rows.push({
         prNumber: pr.number,
         firstReviewHours: hoursBetween(firstReview?.submitted_at),
         firstMaintainerReviewHours: hoursBetween(maintainerReview?.submitted_at),
+        firstApprovalHours,
+        approvalToMergeHours: firstApprovalHours !== null && pr.merged_at ? Math.max(0, differenceInMinutes(parseISO(pr.merged_at), parseISO(firstApproval.submitted_at)) / 60) : null,
         reviewCount: reviews.length,
         approvalCount: reviews.filter((review) => review.state === 'APPROVED').length,
         changesRequestedCount: reviews.filter((review) => review.state === 'CHANGES_REQUESTED').length,
+        reviewRounds: reviews.filter((review) => review.state === 'CHANGES_REQUESTED').length,
+        commentCount,
         reviewerLogins: Array.from(new Set(reviews.map((review) => review.user?.login).filter(Boolean))).slice(0, 10),
       });
+      for (const reviewer of Array.from(new Set(reviews.map((review) => review.user?.login).filter(Boolean)))) {
+        const current = reviewerMap.get(reviewer as string) || { reviewedPRs: 0, approvals: 0 };
+        current.reviewedPRs++;
+        current.approvals += reviews.filter((review) => review.user?.login === reviewer && review.state === 'APPROVED').length;
+        reviewerMap.set(reviewer as string, current);
+      }
     } catch {
       // Keep partial report availability when an individual PR cannot be read.
     }
   }
 
+  const reviewedPRs = rows.filter((row) => row.reviewCount > 0).length;
+  const totalReviewerTouchedPRs = Array.from(reviewerMap.values()).reduce((sum, item) => sum + item.reviewedPRs, 0);
+  const topReviewers = Array.from(reviewerMap.entries())
+    .map(([username, values]) => ({ username, ...values }))
+    .sort((a, b) => b.reviewedPRs - a.reviewedPRs || b.approvals - a.approvals)
+    .slice(0, 8);
+  const mergeCandidates = candidates.filter((pr) => Boolean(pr.merged_at));
+  const closedWithoutMerge = candidates.filter((pr) => pr.state === 'closed' && !pr.merged_at).length;
   return {
     rows,
     scannedPRs: candidates.length,
     availablePRs: pullRequests.length,
     isPartial: pullRequests.length > candidates.length,
+    funnel: {
+      opened: candidates.length,
+      reviewed: reviewedPRs,
+      approved: rows.filter((row) => row.approvalCount > 0).length,
+      merged: mergeCandidates.length,
+      closedWithoutMerge,
+      open: candidates.filter((pr) => pr.state === 'open').length,
+    },
+    topReviewers,
+    topReviewerPct: totalReviewerTouchedPRs ? Math.round((topReviewers[0]?.reviewedPRs || 0) / totalReviewerTouchedPRs * 100) : 0,
+    topThreeReviewerPct: totalReviewerTouchedPRs ? Math.round((topReviewers.slice(0, 3).reduce((sum, item) => sum + item.reviewedPRs, 0) / totalReviewerTouchedPRs) * 100) : 0,
   };
 }
 

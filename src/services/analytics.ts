@@ -1,5 +1,5 @@
 import { differenceInMinutes, format, parseISO } from 'date-fns';
-import type { ChangedFileStat, DeepAnalyticsSummary, PullRequest } from '../types';
+import type { ChangedFileStat, DeepAnalyticsSummary, PullRequest, TopicOutcomeStat } from '../types';
 
 const STOP_WORDS = new Set([
   'the', 'and', 'for', 'with', 'from', 'this', 'that', 'into', 'when', 'fix', 'fixed', 'add', 'added',
@@ -19,7 +19,11 @@ export function buildDeepAnalyticsSummary(pullRequests: PullRequest[]): DeepAnal
     .filter((hours) => Number.isFinite(hours) && hours >= 0);
 
   const maintainerMap = new Map<string, { mergedPRs: number; totalPRs: number }>();
+  const authorMap = new Map<string, PullRequest[]>();
   for (const pr of pullRequests) {
+    const authorPRs = authorMap.get(pr.user.login) || [];
+    authorPRs.push(pr);
+    authorMap.set(pr.user.login, authorPRs);
     if (!['OWNER', 'MEMBER', 'COLLABORATOR'].includes(pr.author_association || '')) continue;
     const current = maintainerMap.get(pr.user.login) || { mergedPRs: 0, totalPRs: 0 };
     current.totalPRs++;
@@ -27,8 +31,8 @@ export function buildDeepAnalyticsSummary(pullRequests: PullRequest[]): DeepAnal
     maintainerMap.set(pr.user.login, current);
   }
 
-  const topicMap = new Map<string, { mentions: number; mergedMentions: number; prNumbers: Set<number> }>();
-  const timelineMap = new Map<string, { opened: number; merged: number; closed: number }>();
+  const topicMap = new Map<string, { mentions: number; mergedMentions: number; mergedDurations: number[]; maintainerMergedCount: number; prNumbers: Set<number>; createdAt: number[] }>();
+  const timelineMap = new Map<string, { opened: number; merged: number; closed: number; open: number }>();
   const mergeBuckets = new Map<string, number>([
     ['Under 6h', 0],
     ['6–24h', 0],
@@ -50,17 +54,18 @@ export function buildDeepAnalyticsSummary(pullRequests: PullRequest[]): DeepAnal
   });
   for (const pr of pullRequests) {
     const openedLabel = format(parseISO(pr.created_at), 'MMM yyyy');
-    const openedBucket = timelineMap.get(openedLabel) || { opened: 0, merged: 0, closed: 0 };
+    const openedBucket = timelineMap.get(openedLabel) || { opened: 0, merged: 0, closed: 0, open: 0 };
     openedBucket.opened++;
+    if (pr.state === 'open') openedBucket.open++;
     timelineMap.set(openedLabel, openedBucket);
     if (pr.merged_at) {
       const mergedLabel = format(parseISO(pr.merged_at), 'MMM yyyy');
-      const mergedBucket = timelineMap.get(mergedLabel) || { opened: 0, merged: 0, closed: 0 };
+      const mergedBucket = timelineMap.get(mergedLabel) || { opened: 0, merged: 0, closed: 0, open: 0 };
       mergedBucket.merged++;
       timelineMap.set(mergedLabel, mergedBucket);
     } else if (pr.closed_at) {
       const closedLabel = format(parseISO(pr.closed_at), 'MMM yyyy');
-      const closedBucket = timelineMap.get(closedLabel) || { opened: 0, merged: 0, closed: 0 };
+      const closedBucket = timelineMap.get(closedLabel) || { opened: 0, merged: 0, closed: 0, open: 0 };
       closedBucket.closed++;
       timelineMap.set(closedLabel, closedBucket);
     }
@@ -77,13 +82,56 @@ export function buildDeepAnalyticsSummary(pullRequests: PullRequest[]): DeepAnal
       .filter((token) => token.length >= 3 && !STOP_WORDS.has(token));
     const topics = new Set([...labels.map((label) => label.toLowerCase()), ...titleTokens]);
     topics.forEach((topic) => {
-      const current = topicMap.get(topic) || { mentions: 0, mergedMentions: 0, prNumbers: new Set<number>() };
+      const current = topicMap.get(topic) || { mentions: 0, mergedMentions: 0, mergedDurations: [], maintainerMergedCount: 0, prNumbers: new Set<number>(), createdAt: [] };
       current.mentions++;
-      if (pr.merged_at) current.mergedMentions++;
+      current.createdAt.push(parseISO(pr.created_at).getTime());
+      if (pr.merged_at) {
+        current.mergedMentions++;
+        const duration = differenceInMinutes(parseISO(pr.merged_at), parseISO(pr.created_at)) / 60;
+        if (Number.isFinite(duration) && duration >= 0) current.mergedDurations.push(duration);
+        if (['OWNER', 'MEMBER', 'COLLABORATOR'].includes(pr.author_association || '')) current.maintainerMergedCount++;
+      }
       current.prNumbers.add(pr.number);
       topicMap.set(topic, current);
     });
   }
+
+  const timeline = Array.from(timelineMap.entries())
+    .sort(([a], [b]) => new Date(`1 ${a}`).getTime() - new Date(`1 ${b}`).getTime())
+    .map(([label, values], index, entries) => ({
+      label,
+      ...values,
+      movingAverage: round(entries.slice(Math.max(0, index - 3), index + 1).reduce((sum, [, item]) => sum + item.opened, 0) / Math.min(index + 1, 4)),
+    }));
+
+  const windowTimes = pullRequests.map((pr) => parseISO(pr.created_at).getTime()).filter(Number.isFinite);
+  const midpoint = windowTimes.length ? Math.min(...windowTimes) + (Math.max(...windowTimes) - Math.min(...windowTimes)) / 2 : 0;
+  const topicOutcomeMatrix = Array.from(topicMap.entries())
+    .map(([topic, values]) => {
+      const recentCount = values.createdAt.filter((time) => time >= midpoint).length;
+      const earlierCount = values.createdAt.length - recentCount;
+      const recentTrend: TopicOutcomeStat['recentTrend'] = values.createdAt.length < 4 || recentCount === earlierCount
+        ? 'stable'
+        : recentCount > earlierCount * 1.2 ? 'rising' : recentCount * 1.2 < earlierCount ? 'falling' : 'stable';
+      return {
+        topic,
+        prCount: values.mentions,
+        mergedCount: values.mergedMentions,
+        mergeRatePct: values.mentions ? Math.round((values.mergedMentions / values.mentions) * 100) : 0,
+        medianMergeTimeHours: percentile([...values.mergedDurations].sort((a, b) => a - b), 0.5),
+        maintainerAssociatedMergedCount: values.maintainerMergedCount,
+        recentTrend,
+        prNumbers: Array.from(values.prNumbers).slice(0, 12),
+      };
+    })
+    .filter((item) => item.prCount >= 2 || item.mergedCount >= 1)
+    .sort((a, b) => b.mergedCount - a.mergedCount || b.prCount - a.prCount)
+    .slice(0, 20);
+
+  const conversionRows = Array.from(authorMap.values()).map((prs) => [...prs].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
+  const firstPRMergedAuthors = conversionRows.filter((prs) => Boolean(prs[0]?.merged_at)).length;
+  const repeatAuthors = conversionRows.filter((prs) => prs.length > 1);
+  const repeatMergedAuthors = repeatAuthors.filter((prs) => prs.some((pr) => Boolean(pr.merged_at))).length;
 
   return {
     totalPRs: pullRequests.length,
@@ -93,6 +141,10 @@ export function buildDeepAnalyticsSummary(pullRequests: PullRequest[]): DeepAnal
     averageMergeTimeHours: durations.length ? round(durations.reduce((sum, value) => sum + value, 0) / durations.length) : null,
     medianMergeTimeHours: percentile(durations, 0.5),
     p75MergeTimeHours: percentile(durations, 0.75),
+    p90MergeTimeHours: percentile(durations, 0.9),
+    fastestMergeTimeHours: durations.length ? durations[0] : null,
+    slowestMergeTimeHours: durations.length ? durations[durations.length - 1] : null,
+    mergeSampleSize: durations.length,
     oldestOpenPRHours: openAges.length ? round(Math.max(...openAges)) : null,
     activeDays: new Set(pullRequests.map((pr) => pr.created_at.slice(0, 10))).size,
     maintainerAuthoredPct: pullRequests.length ? Math.round((Array.from(maintainerMap.values()).reduce((sum, item) => sum + item.totalPRs, 0) / pullRequests.length) * 100) : 0,
@@ -105,7 +157,25 @@ export function buildDeepAnalyticsSummary(pullRequests: PullRequest[]): DeepAnal
       .filter((item) => item.mentions >= 2 || item.mergedMentions >= 1)
       .sort((a, b) => b.mergedMentions - a.mergedMentions || b.mentions - a.mentions)
       .slice(0, 20),
-    activityTimeline: Array.from(timelineMap.entries()).sort(([a], [b]) => new Date(`1 ${a}`).getTime() - new Date(`1 ${b}`).getTime()).map(([label, values]) => ({ label, ...values })),
+    topicOutcomeMatrix,
+    contributorConversion: {
+      uniqueAuthors: conversionRows.length,
+      authorsWithMergedPR: conversionRows.filter((prs) => prs.some((pr) => Boolean(pr.merged_at))).length,
+      firstPRMergedAuthors,
+      repeatAuthors: repeatAuthors.length,
+      repeatMergedAuthors,
+      oneAndDoneAuthors: conversionRows.filter((prs) => prs.length === 1).length,
+      coverage: 'selected-window',
+    },
+    mergeFunnel: {
+      opened: pullRequests.length,
+      reviewed: null,
+      approved: null,
+      merged: merged.length,
+      closedWithoutMerge: pullRequests.filter((pr) => pr.state === 'closed' && !pr.merged_at).length,
+      open: pullRequests.filter((pr) => pr.state === 'open').length,
+    },
+    activityTimeline: timeline,
     mergeTimeBuckets: Array.from(mergeBuckets.entries()).map(([label, count]) => ({ label, count })),
     openAgeBuckets: Array.from(openAgeBuckets.entries()).map(([label, count]) => ({ label, count })),
   };

@@ -47,14 +47,49 @@ export interface DeepAnalyticsSummary {
   averageMergeTimeHours: number | null;
   medianMergeTimeHours: number | null;
   p75MergeTimeHours: number | null;
+  p90MergeTimeHours: number | null;
+  fastestMergeTimeHours: number | null;
+  slowestMergeTimeHours: number | null;
+  mergeSampleSize: number;
   oldestOpenPRHours: number | null;
   activeDays: number;
   maintainerAuthoredPct: number;
   topMaintainerActivity: Array<{ username: string; mergedPRs: number; totalPRs: number }>;
   topicCandidates: Array<{ topic: string; mentions: number; mergedMentions: number; prNumbers: number[] }>;
-  activityTimeline: Array<{ label: string; opened: number; merged: number; closed: number }>;
+  topicOutcomeMatrix: TopicOutcomeStat[];
+  contributorConversion: ContributorConversion;
+  mergeFunnel: {
+    opened: number;
+    reviewed: number | null;
+    approved: number | null;
+    merged: number;
+    closedWithoutMerge: number;
+    open: number;
+  };
+  activityTimeline: Array<{ label: string; opened: number; merged: number; closed: number; open: number; movingAverage: number }>;
   mergeTimeBuckets: Array<{ label: string; count: number }>;
   openAgeBuckets: Array<{ label: string; count: number }>;
+}
+
+export interface TopicOutcomeStat {
+  topic: string;
+  prCount: number;
+  mergedCount: number;
+  mergeRatePct: number;
+  medianMergeTimeHours: number | null;
+  maintainerAssociatedMergedCount: number;
+  recentTrend: 'rising' | 'stable' | 'falling';
+  prNumbers: number[];
+}
+
+export interface ContributorConversion {
+  uniqueAuthors: number;
+  authorsWithMergedPR: number;
+  firstPRMergedAuthors: number;
+  repeatAuthors: number;
+  repeatMergedAuthors: number;
+  oneAndDoneAuthors: number;
+  coverage: 'selected-window';
 }
 
 export interface AIInsightTopic {
@@ -81,13 +116,30 @@ export interface ChangedFileStat {
   additions: number;
   deletions: number;
   changes: number;
+  totalPRs: number;
   mergedPRs: number;
   maintainerMergedPRs: number;
+  uniqueContributors: number;
+  medianMergeTimeHours: number | null;
+  prNumbers: number[];
+}
+
+export interface DirectoryFocusStat {
+  path: string;
+  totalPRs: number;
+  mergedPRs: number;
+  maintainerMergedPRs: number;
+  mergeRatePct: number;
+  additions: number;
+  deletions: number;
+  medianMergeTimeHours: number | null;
+  uniqueContributors: number;
   prNumbers: number[];
 }
 
 export interface DeepFileAnalytics {
   files: ChangedFileStat[];
+  directories: DirectoryFocusStat[];
   prSizes: Array<{ prNumber: number; filesChanged: number; additions: number; deletions: number; changes: number; mergedAt: string | null; mergeTimeHours: number | null }>;
   analyzedMergedPRs: number;
   availableMergedPRs: number;
@@ -98,9 +150,13 @@ export interface ReviewResponseRow {
   prNumber: number;
   firstReviewHours: number | null;
   firstMaintainerReviewHours: number | null;
+  firstApprovalHours: number | null;
+  approvalToMergeHours: number | null;
   reviewCount: number;
   approvalCount: number;
   changesRequestedCount: number;
+  reviewRounds: number;
+  commentCount: number;
   reviewerLogins: string[];
 }
 
@@ -109,6 +165,17 @@ export interface DeepReviewAnalytics {
   scannedPRs: number;
   availablePRs: number;
   isPartial: boolean;
+  funnel: {
+    opened: number;
+    reviewed: number;
+    approved: number;
+    merged: number;
+    closedWithoutMerge: number;
+    open: number;
+  };
+  topReviewers: Array<{ username: string; reviewedPRs: number; approvals: number }>;
+  topReviewerPct: number;
+  topThreeReviewerPct: number;
 }
 
 export interface RepoMetrics {

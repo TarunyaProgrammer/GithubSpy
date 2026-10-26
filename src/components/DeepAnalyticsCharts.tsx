@@ -15,10 +15,12 @@ export const DeepAnalyticsCharts: React.FC<DeepAnalyticsChartsProps> = ({ summar
   <div className="space-y-4">
     <section className="grid grid-cols-1 gap-4 lg:grid-cols-2" aria-label="Activity and merge-time charts">
       <ActivityChart timeline={summary.activityTimeline} />
-      <MergeTimeChart buckets={summary.mergeTimeBuckets} />
+      <MergeTimeChart buckets={summary.mergeTimeBuckets} summary={summary} />
     </section>
+    <MergeFunnelChart summary={summary} reviewAnalytics={reviewAnalytics} />
     <OpenAgeChart buckets={summary.openAgeBuckets} />
     <SizeChart fileAnalytics={fileAnalytics} />
+    <SizeMergeChart fileAnalytics={fileAnalytics} />
     <ReviewResponseSection analytics={reviewAnalytics} loading={reviewLoading} progress={reviewProgress} error={reviewError} />
   </div>
 );
@@ -33,21 +35,28 @@ function ActivityChart({ timeline }: { timeline: DeepAnalyticsSummary['activityT
             <div className="flex h-32 w-full max-w-10 items-end gap-0.5">
               <Bar value={item.opened} max={max} color="bg-[#D5D0C7]" title={`${item.opened} opened`} />
               <Bar value={item.merged} max={max} color="bg-emerald-600" title={`${item.merged} merged`} />
-              <Bar value={item.closed} max={max} color="bg-[#EAA036]" title={`${item.closed} closed`} />
+              <Bar value={item.closed} max={max} color="bg-[#EAA036]" title={`${item.closed} closed without merge`} />
             </div>
             <span className="max-w-16 truncate text-[9px] font-mono text-[#787571]">{item.label}</span>
           </div>
         ))}
       </div>
       <Legend items={[["Opened", "bg-[#D5D0C7]"], ["Merged", "bg-emerald-600"], ["Closed", "bg-[#EAA036]"]]} />
+      <p className="mt-3 text-[10px] text-[#787571]">The thin label below each period is a four-period moving average of opened PRs: {timeline.length ? `${timeline[timeline.length - 1].movingAverage} opened per period recently.` : 'not available.'}</p>
     </ChartShell>
   );
 }
 
-function MergeTimeChart({ buckets }: { buckets: DeepAnalyticsSummary['mergeTimeBuckets'] }) {
+function MergeTimeChart({ buckets, summary }: { buckets: DeepAnalyticsSummary['mergeTimeBuckets']; summary: DeepAnalyticsSummary }) {
   const max = Math.max(...buckets.map((item) => item.count), 1);
   return (
     <ChartShell icon={Clock3} title="Merge-time distribution" description="How long merged PRs took from opening to merge.">
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <TinyMetric label="Median" value={formatHours(summary.medianMergeTimeHours)} />
+        <TinyMetric label="P75" value={formatHours(summary.p75MergeTimeHours)} />
+        <TinyMetric label="P90" value={formatHours(summary.p90MergeTimeHours)} />
+        <TinyMetric label="Sample" value={`${summary.mergeSampleSize} PRs`} />
+      </div>
       <div className="mt-5 space-y-3">
         {buckets.map((bucket) => (
           <div key={bucket.label} className="grid grid-cols-[58px_1fr_28px] items-center gap-2 text-[11px]">
@@ -57,9 +66,24 @@ function MergeTimeChart({ buckets }: { buckets: DeepAnalyticsSummary['mergeTimeB
           </div>
         ))}
       </div>
-      <p className="mt-4 text-[10px] text-[#787571]">Use the median and 75th percentile above when comparing repositories; a bucket count alone is not a performance score.</p>
+      <p className="mt-4 text-[10px] text-[#787571]">Fastest: {formatHours(summary.fastestMergeTimeHours)} · Slowest: {formatHours(summary.slowestMergeTimeHours)}. Percentiles are calculated from merged PRs in this report window.</p>
     </ChartShell>
   );
+}
+
+function MergeFunnelChart({ summary, reviewAnalytics }: { summary: DeepAnalyticsSummary; reviewAnalytics: DeepReviewAnalytics | null }) {
+  const funnel = reviewAnalytics?.funnel || summary.mergeFunnel;
+  const stages = [
+    { label: 'Opened', value: funnel.opened, color: 'bg-[#D5D0C7]' },
+    { label: 'Received review', value: funnel.reviewed, color: 'bg-[#EAA036]' },
+    { label: 'Approved', value: funnel.approved, color: 'bg-[#9E6212]' },
+    { label: 'Merged', value: funnel.merged, color: 'bg-emerald-600' },
+  ];
+  const base = funnel.opened || 1;
+  return <ChartShell icon={GitPullRequest} title="Merge funnel" description="Where contributions move forward or drop out. Review and approval stages appear after the authenticated deep scan.">
+    <div className="mt-5 grid gap-2 md:grid-cols-4">{stages.map((stage, index) => <div key={stage.label} className="relative rounded-xl bg-[#F7F5F0] p-3"><div className={`h-1.5 rounded ${stage.color}`} style={{ width: `${stage.value === null ? 0 : Math.max((stage.value / base) * 100, stage.value ? 5 : 0)}%` }} /><p className="mt-3 text-[10px] uppercase tracking-wide text-[#787571]">{stage.label}</p><p className="mt-1 text-lg font-display font-bold text-[#161514]">{stage.value === null ? '—' : stage.value}</p>{stage.value !== null && <p className="mt-0.5 text-[10px] text-[#787571]">{Math.round((stage.value / base) * 100)}% of opened</p>}{index < stages.length - 1 && <span className="absolute -right-2 top-12 z-10 hidden text-[#C4BFB6] md:block">→</span>}</div>)}</div>
+    <div className="mt-3 flex flex-wrap gap-2 text-[10px] text-[#787571]"><span className="rounded-full bg-[#F7F5F0] px-2.5 py-1">Closed without merge: {funnel.closedWithoutMerge}</span><span className="rounded-full bg-[#F7F5F0] px-2.5 py-1">Still open: {funnel.open}</span>{!reviewAnalytics && <span className="rounded-full bg-[#FFF9EF] px-2.5 py-1 text-[#9E6212]">Add PAT for review stages</span>}</div>
+  </ChartShell>;
 }
 
 function OpenAgeChart({ buckets }: { buckets: DeepAnalyticsSummary['openAgeBuckets'] }) {
@@ -99,11 +123,21 @@ function SizeChart({ fileAnalytics }: { fileAnalytics: DeepFileAnalytics | null 
   return <ChartShell icon={Ruler} title="Change-size profile" description="Merged PRs grouped by number of changed files. This helps contributors calibrate scope before opening a PR.">{fileAnalytics ? <div className="mt-5 space-y-3">{bands.map((band) => <div key={band.label} className="grid grid-cols-[90px_1fr_38px] items-center gap-2 text-[11px]"><span className="font-mono text-[#65615B]">{band.label}</span><div><div className="h-3 rounded bg-[#EFECE6]"><div className="h-3 rounded bg-[#9E6212]" style={{ width: `${(band.count / max) * 100}%` }} /></div><p className="mt-1 text-[9px] text-[#8F8B83]">avg merge {band.averageMergeHours === null ? '—' : formatHours(band.averageMergeHours)}</p></div><span className="text-right font-mono text-[#161514]">{band.count}</span></div>)}</div> : <EmptyDeepState text="Open the report with a GitHub PAT to scan merged PR file sizes." />}</ChartShell>;
 }
 
+function SizeMergeChart({ fileAnalytics }: { fileAnalytics: DeepFileAnalytics | null }) {
+  const rows = (fileAnalytics?.prSizes || []).filter((row) => row.mergeTimeHours !== null).slice(0, 60);
+  const maxChanges = Math.max(...rows.map((row) => row.changes), 1);
+  const maxHours = Math.max(...rows.map((row) => row.mergeTimeHours || 0), 1);
+  return <ChartShell icon={Ruler} title="PR size versus merge time" description="Each point is a merged PR. Larger changes above the diagonal are a warning sign, not proof of causation.">
+    {fileAnalytics ? <div className="mt-5"><div className="relative h-52 rounded-xl border border-[#E5E0D8] bg-[#F7F5F0]"><div className="absolute inset-x-7 bottom-7 top-4 border-b border-l border-[#CFC9BF]">{rows.map((row) => <span key={row.prNumber} title={`PR #${row.prNumber}: ${row.changes} changed lines, ${formatHours(row.mergeTimeHours)}`} className="absolute h-2.5 w-2.5 rounded-full bg-[#9E6212] ring-2 ring-[#FFF9EF]" style={{ left: `${Math.min((row.changes / maxChanges) * 96, 96)}%`, bottom: `${Math.min(((row.mergeTimeHours || 0) / maxHours) * 92, 92)}%` }} />)}</div><span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[9px] text-[#787571]">changed lines</span><span className="absolute left-1 top-1/2 -rotate-90 text-[9px] text-[#787571]">merge time</span></div><p className="mt-2 text-[10px] text-[#787571]">Showing {rows.length} merged PRs from the bounded file scan. Hover a point for PR evidence.</p></div> : <EmptyDeepState text="Open the report with a GitHub PAT to scan PR size metadata." />}
+  </ChartShell>;
+}
+
 function ReviewResponseSection({ analytics, loading, progress, error }: { analytics: DeepReviewAnalytics | null; loading: boolean; progress: string; error: string | null }) {
   const firstReviewTimes = analytics?.rows.map((row) => row.firstReviewHours).filter((value): value is number => value !== null) || [];
   const maintainerTimes = analytics?.rows.map((row) => row.firstMaintainerReviewHours).filter((value): value is number => value !== null) || [];
+  const approvalToMergeTimes = analytics?.rows.map((row) => row.approvalToMergeHours).filter((value): value is number => value !== null) || [];
   const noReview = analytics ? analytics.rows.filter((row) => row.reviewCount === 0).length : 0;
-  return <section className="rounded-3xl border border-[#E5E0D8] bg-white p-4 shadow-xs sm:p-6"><div className="flex items-start gap-3"><div className="rounded-xl bg-[#EAA036]/15 p-2 text-[#9E6212]"><MessageSquare className="h-4 w-4" /></div><div><h2 className="text-base font-display font-bold text-[#161514] sm:text-lg">Review response and friction</h2><p className="mt-1 text-xs leading-relaxed text-[#787571]">Authenticated deep scan of review events. It measures response behavior separately from merge time.</p></div></div>{loading && <p className="mt-4 text-xs font-mono text-[#9E6212]">{progress || 'Reading review history…'}</p>}{error && <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">{error}</p>}{!analytics && !loading && !error && <EmptyDeepState text="Connect a GitHub PAT to scan first-review and maintainer-response timing." />}{analytics && <><div className="mt-5 grid grid-cols-2 gap-2 lg:grid-cols-4"><ReviewStat icon={Clock3} label="First review" value={formatHours(median(firstReviewTimes))} /><ReviewStat icon={Users} label="Maintainer review" value={formatHours(median(maintainerTimes))} /><ReviewStat icon={MessageSquare} label="No review" value={`${noReview}/${analytics.rows.length}`} /><ReviewStat icon={GitPullRequest} label="PRs scanned" value={`${analytics.rows.length}/${analytics.availablePRs}`} /></div><p className="mt-4 text-[10px] leading-relaxed text-[#787571]">Review times are based on the first submitted review timestamp, not comments or merge time. {analytics.isPartial ? 'This is a bounded sample of the selected PR window.' : 'The selected PR window was fully scanned.'}</p></>}</section>;
+  return <section className="rounded-3xl border border-[#E5E0D8] bg-white p-4 shadow-xs sm:p-6"><div className="flex items-start gap-3"><div className="rounded-xl bg-[#EAA036]/15 p-2 text-[#9E6212]"><MessageSquare className="h-4 w-4" /></div><div><h2 className="text-base font-display font-bold text-[#161514] sm:text-lg">Review response and friction</h2><p className="mt-1 text-xs leading-relaxed text-[#787571]">Authenticated deep scan of review events. It measures response behavior separately from merge time.</p></div></div>{loading && <p className="mt-4 text-xs font-mono text-[#9E6212]">{progress || 'Reading review history…'}</p>}{error && <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">{error}</p>}{!analytics && !loading && !error && <EmptyDeepState text="Connect a GitHub PAT to scan first-review and maintainer-response timing." />}{analytics && <><div className="mt-5 grid grid-cols-2 gap-2 lg:grid-cols-5"><ReviewStat icon={Clock3} label="First review p50" value={formatHours(percentile(firstReviewTimes, 0.5))} /><ReviewStat icon={Users} label="Maintainer p50" value={formatHours(percentile(maintainerTimes, 0.5))} /><ReviewStat icon={Clock3} label="Approval → merge" value={formatHours(percentile(approvalToMergeTimes, 0.5))} /><ReviewStat icon={MessageSquare} label="No review" value={`${noReview}/${analytics.rows.length}`} /><ReviewStat icon={GitPullRequest} label="PRs scanned" value={`${analytics.rows.length}/${analytics.availablePRs}`} /></div><div className="mt-4 grid gap-3 md:grid-cols-2"><div className="rounded-xl bg-[#F7F5F0] p-3 text-xs text-[#65615B]"><p className="font-semibold text-[#161514]">Reviewer concentration</p><p className="mt-1">Top reviewer: {analytics.topReviewerPct}% · Top three: {analytics.topThreeReviewerPct}% of reviewer touches.</p></div><div className="rounded-xl bg-[#F7F5F0] p-3 text-xs text-[#65615B]"><p className="font-semibold text-[#161514]">Revision friction</p><p className="mt-1">{analytics.rows.reduce((sum, row) => sum + row.reviewRounds, 0)} requested-change rounds · {analytics.rows.reduce((sum, row) => sum + row.commentCount, 0)} inline comments.</p></div></div><p className="mt-4 text-[10px] leading-relaxed text-[#787571]">Review times are based on submitted review timestamps, not general comments or merge time. {analytics.isPartial ? 'This is a bounded sample of the selected PR window.' : 'The selected PR window was fully scanned.'}</p></>}</section>;
 }
 
 function ChartShell({ icon: Icon, title, description, children }: { icon: typeof BarChart3; title: string; description: string; children: React.ReactNode }) { return <article className="rounded-3xl border border-[#E5E0D8] bg-white p-4 shadow-xs sm:p-6"><div className="flex items-start gap-3"><div className="rounded-xl bg-[#EFECE6] p-2 text-[#9E6212]"><Icon className="h-4 w-4" /></div><div><h2 className="text-base font-display font-bold text-[#161514]">{title}</h2><p className="mt-1 text-xs leading-relaxed text-[#787571]">{description}</p></div></div>{children}</article>; }
@@ -112,4 +146,6 @@ function Legend({ items }: { items: Array<[string, string]> }) { return <div cla
 function EmptyDeepState({ text }: { text: string }) { return <div className="mt-5 rounded-xl border border-dashed border-[#D5D0C7] bg-[#F7F5F0] px-3 py-5 text-xs text-[#787571]">{text}</div>; }
 function ReviewStat({ icon: Icon, label, value }: { icon: typeof Clock3; label: string; value: string }) { return <div className="rounded-xl bg-[#F7F5F0] p-3"><div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-[#787571]"><Icon className="h-3.5 w-3.5 text-[#EAA036]" />{label}</div><p className="mt-2 text-lg font-display font-bold text-[#161514]">{value}</p></div>; }
 function median(values: number[]) { if (!values.length) return null; const sorted = [...values].sort((a, b) => a - b); return sorted[Math.floor((sorted.length - 1) / 2)]; }
+function percentile(values: number[], ratio: number) { if (!values.length) return null; const sorted = [...values].sort((a, b) => a - b); return sorted[Math.min(sorted.length - 1, Math.floor((sorted.length - 1) * ratio))]; }
+function TinyMetric({ label, value }: { label: string; value: string }) { return <div className="rounded-lg bg-[#F7F5F0] p-2"><p className="text-[9px] uppercase tracking-wide text-[#787571]">{label}</p><p className="mt-1 text-xs font-display font-bold text-[#161514]">{value}</p></div>; }
 function formatHours(hours: number | null) { if (hours === null) return 'No data'; if (hours < 24) return `${Math.round(hours * 10) / 10}h`; return `${Math.round((hours / 24) * 10) / 10}d`; }
