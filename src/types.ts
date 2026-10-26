@@ -55,6 +55,7 @@ export interface DeepAnalyticsSummary {
   activeDays: number;
   maintainerAuthoredPct: number;
   topMaintainerActivity: Array<{ username: string; mergedPRs: number; totalPRs: number }>;
+  topMergerActivity: Array<{ username: string; mergedPRs: number }>;
   topicCandidates: Array<{ topic: string; mentions: number; mergedMentions: number; prNumbers: number[] }>;
   topicOutcomeMatrix: TopicOutcomeStat[];
   contributorConversion: ContributorConversion;

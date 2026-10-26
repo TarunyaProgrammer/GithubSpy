@@ -19,6 +19,7 @@ export function buildDeepAnalyticsSummary(pullRequests: PullRequest[]): DeepAnal
     .filter((hours) => Number.isFinite(hours) && hours >= 0);
 
   const maintainerMap = new Map<string, { mergedPRs: number; totalPRs: number }>();
+  const mergerMap = new Map<string, number>();
   const authorMap = new Map<string, PullRequest[]>();
   for (const pr of pullRequests) {
     const authorPRs = authorMap.get(pr.user.login) || [];
@@ -59,6 +60,7 @@ export function buildDeepAnalyticsSummary(pullRequests: PullRequest[]): DeepAnal
     if (pr.state === 'open') openedBucket.open++;
     timelineMap.set(openedLabel, openedBucket);
     if (pr.merged_at) {
+      if (pr.merged_by) mergerMap.set(pr.merged_by, (mergerMap.get(pr.merged_by) || 0) + 1);
       const mergedLabel = format(parseISO(pr.merged_at), 'MMM yyyy');
       const mergedBucket = timelineMap.get(mergedLabel) || { opened: 0, merged: 0, closed: 0, open: 0 };
       mergedBucket.merged++;
@@ -151,6 +153,10 @@ export function buildDeepAnalyticsSummary(pullRequests: PullRequest[]): DeepAnal
     topMaintainerActivity: Array.from(maintainerMap.entries())
       .map(([username, values]) => ({ username, ...values }))
       .sort((a, b) => b.mergedPRs - a.mergedPRs || b.totalPRs - a.totalPRs)
+      .slice(0, 8),
+    topMergerActivity: Array.from(mergerMap.entries())
+      .map(([username, mergedPRs]) => ({ username, mergedPRs }))
+      .sort((a, b) => b.mergedPRs - a.mergedPRs)
       .slice(0, 8),
     topicCandidates: Array.from(topicMap.entries())
       .map(([topic, values]) => ({ topic, mentions: values.mentions, mergedMentions: values.mergedMentions, prNumbers: Array.from(values.prNumbers).slice(0, 12) }))
