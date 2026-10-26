@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Analytics } from '@vercel/analytics/react';
 import { Header } from './components/Header';
 import { SearchSection } from './components/SearchSection';
 import { MetricsBar } from './components/MetricsBar';
@@ -25,6 +24,7 @@ import { hasPersonalToken } from './services/token';
 import { addRecentRepo } from './services/history';
 import type { DateRange, OrganizationStats, RepoStats, UserStats, TimeFilter, RateLimitInfo } from './types';
 import { AlertCircle, RefreshCw, KeyRound, Loader2, Zap } from 'lucide-react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 export function App() {
   const [stats, setStats] = useState<RepoStats | null>(null);
@@ -405,9 +405,9 @@ export function App() {
 
       {/* Footer */}
       <Footer />
-      
-      {/* Vercel Web Analytics */}
-      <Analytics />
+
+      {/* Vercel Speed Insights */}
+      <SpeedInsights />
     </div>
   );
 }
