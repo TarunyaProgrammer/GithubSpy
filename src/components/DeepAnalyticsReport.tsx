@@ -3,8 +3,9 @@ import { ArrowLeft, BarChart3, Clock3, GitMerge, GitPullRequest, ShieldCheck, Us
 import { format, parseISO } from 'date-fns';
 import type { DateRange, DeepFileAnalytics, RepoStats, TimeFilter } from '../types';
 import { buildAIInput, buildDeepAnalyticsSummary } from '../services/analytics';
-import { fetchDeepFileAnalytics } from '../services/github';
+import { fetchDeepFileAnalytics, fetchDeepReviewAnalytics } from '../services/github';
 import { AIInsightsPanel } from './AIInsightsPanel';
+import { DeepAnalyticsCharts } from './DeepAnalyticsCharts';
 
 interface DeepAnalyticsReportProps {
   stats: RepoStats;
@@ -30,6 +31,10 @@ export const DeepAnalyticsReport: React.FC<DeepAnalyticsReportProps> = ({ stats,
   const [fileLoading, setFileLoading] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
   const [fileProgress, setFileProgress] = useState('');
+  const [reviewAnalytics, setReviewAnalytics] = useState<import('../types').DeepReviewAnalytics | null>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [reviewProgress, setReviewProgress] = useState('');
 
   useEffect(() => {
     if (!hasPersonalToken || fileAnalytics || fileLoading) return;
@@ -39,6 +44,15 @@ export const DeepAnalyticsReport: React.FC<DeepAnalyticsReportProps> = ({ stats,
       .catch((error) => setFileError(error instanceof Error ? error.message : 'Changed-file analysis could not be loaded.'))
       .finally(() => setFileLoading(false));
   }, [fileAnalytics, fileLoading, hasPersonalToken, stats.owner, stats.repo, stats.recentPRs]);
+
+  useEffect(() => {
+    if (!hasPersonalToken || reviewAnalytics || reviewLoading) return;
+    setReviewLoading(true);
+    fetchDeepReviewAnalytics(stats.owner, stats.repo, stats.recentPRs, setReviewProgress)
+      .then(setReviewAnalytics)
+      .catch((error) => setReviewError(error instanceof Error ? error.message : 'Review analytics could not be loaded.'))
+      .finally(() => setReviewLoading(false));
+  }, [hasPersonalToken, reviewAnalytics, reviewLoading, stats.owner, stats.repo, stats.recentPRs]);
 
   const evidence = useMemo(() => buildAIInput(stats.recentPRs, summary, fileAnalytics?.files || []), [stats.recentPRs, summary, fileAnalytics]);
 
@@ -76,6 +90,8 @@ export const DeepAnalyticsReport: React.FC<DeepAnalyticsReportProps> = ({ stats,
       </section>
 
       <ChangedFilesSection analytics={fileAnalytics} loading={fileLoading} progress={fileProgress} error={fileError} hasPersonalToken={hasPersonalToken} onOpenTokenModal={onOpenTokenModal} />
+
+      <DeepAnalyticsCharts summary={summary} fileAnalytics={fileAnalytics} reviewAnalytics={reviewAnalytics} reviewLoading={reviewLoading} reviewProgress={reviewProgress} reviewError={reviewError} />
 
       <AIInsightsPanel evidence={evidence} />
     </section>

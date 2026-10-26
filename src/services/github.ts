@@ -12,6 +12,7 @@ import type {
   RepositorySummary,
   ChangedFileStat,
   DeepFileAnalytics,
+  DeepReviewAnalytics,
 } from '../types';
 import { getActiveToken } from './token';
 import { appCache } from './cache';
@@ -449,6 +450,7 @@ export async function fetchDeepFileAnalytics(
     .sort((a, b) => new Date(b.merged_at as string).getTime() - new Date(a.merged_at as string).getTime());
   const selectedPRs = mergedPRs.slice(0, 25);
   const fileMap = new Map<string, ChangedFileStat>();
+  const prSizes: DeepFileAnalytics['prSizes'] = [];
 
   for (let index = 0; index < selectedPRs.length; index += 1) {
     const pr = selectedPRs[index];
@@ -468,7 +470,17 @@ export async function fetchDeepFileAnalytics(
         30 * 60 * 1000
       );
 
-      for (const file of result.data as Array<{ path: string; additions: number; deletions: number; changes: number }>) {
+      const fileRows = result.data as Array<{ path: string; additions: number; deletions: number; changes: number }>;
+      prSizes.push({
+        prNumber: pr.number,
+        filesChanged: fileRows.length,
+        additions: fileRows.reduce((sum, file) => sum + file.additions, 0),
+        deletions: fileRows.reduce((sum, file) => sum + file.deletions, 0),
+        changes: fileRows.reduce((sum, file) => sum + file.changes, 0),
+        mergedAt: pr.merged_at,
+      });
+
+      for (const file of fileRows) {
         const current = fileMap.get(file.path) || {
           path: file.path,
           additions: 0,
@@ -493,9 +505,60 @@ export async function fetchDeepFileAnalytics(
 
   return {
     files: Array.from(fileMap.values()).sort((a, b) => b.maintainerMergedPRs - a.maintainerMergedPRs || b.mergedPRs - a.mergedPRs || b.changes - a.changes),
+    prSizes,
     analyzedMergedPRs: selectedPRs.length,
     availableMergedPRs: mergedPRs.length,
     isPartial: mergedPRs.length > selectedPRs.length,
+  };
+}
+
+/** Explicit review-event scan used only by the deep report. */
+export async function fetchDeepReviewAnalytics(
+  owner: string,
+  repo: string,
+  pullRequests: PullRequest[],
+  onProgress?: (message: string) => void
+): Promise<DeepReviewAnalytics> {
+  const candidates = [...pullRequests]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 30);
+  const rows: DeepReviewAnalytics['rows'] = [];
+
+  for (let index = 0; index < candidates.length; index += 1) {
+    const pr = candidates[index];
+    onProgress?.(`Reading review history (${index + 1} of ${candidates.length})…`);
+    try {
+      const result = await appCache.getOrFetch(
+        `pr_reviews_${owner}_${repo}_${pr.number}`,
+        async () => {
+          const { data } = await fetchGitHubApi(`/repos/${owner}/${repo}/pulls/${pr.number}/reviews?per_page=100`);
+          return Array.isArray(data) ? data : [];
+        },
+        30 * 60 * 1000
+      );
+      const reviews = (result.data as any[]).filter((review) => review.submitted_at && review.state !== 'PENDING');
+      const firstReview = reviews[0];
+      const maintainerReview = reviews.find((review) => ['OWNER', 'MEMBER', 'COLLABORATOR'].includes(review.author_association || ''));
+      const hoursBetween = (timestamp?: string) => timestamp ? Math.max(0, differenceInMinutes(parseISO(timestamp), parseISO(pr.created_at)) / 60) : null;
+      rows.push({
+        prNumber: pr.number,
+        firstReviewHours: hoursBetween(firstReview?.submitted_at),
+        firstMaintainerReviewHours: hoursBetween(maintainerReview?.submitted_at),
+        reviewCount: reviews.length,
+        approvalCount: reviews.filter((review) => review.state === 'APPROVED').length,
+        changesRequestedCount: reviews.filter((review) => review.state === 'CHANGES_REQUESTED').length,
+        reviewerLogins: Array.from(new Set(reviews.map((review) => review.user?.login).filter(Boolean))).slice(0, 10),
+      });
+    } catch {
+      // Keep partial report availability when an individual PR cannot be read.
+    }
+  }
+
+  return {
+    rows,
+    scannedPRs: candidates.length,
+    availablePRs: pullRequests.length,
+    isPartial: pullRequests.length > candidates.length,
   };
 }
 

@@ -1,4 +1,4 @@
-import { differenceInMinutes, parseISO } from 'date-fns';
+import { differenceInMinutes, format, parseISO } from 'date-fns';
 import type { ChangedFileStat, DeepAnalyticsSummary, PullRequest } from '../types';
 
 const STOP_WORDS = new Set([
@@ -28,7 +28,36 @@ export function buildDeepAnalyticsSummary(pullRequests: PullRequest[]): DeepAnal
   }
 
   const topicMap = new Map<string, { mentions: number; mergedMentions: number; prNumbers: Set<number> }>();
+  const timelineMap = new Map<string, { opened: number; merged: number; closed: number }>();
+  const mergeBuckets = new Map<string, number>([
+    ['Under 6h', 0],
+    ['6–24h', 0],
+    ['1–3d', 0],
+    ['3–7d', 0],
+    ['7–30d', 0],
+    ['30d+', 0],
+  ]);
   for (const pr of pullRequests) {
+    const openedLabel = format(parseISO(pr.created_at), 'MMM yyyy');
+    const openedBucket = timelineMap.get(openedLabel) || { opened: 0, merged: 0, closed: 0 };
+    openedBucket.opened++;
+    timelineMap.set(openedLabel, openedBucket);
+    if (pr.merged_at) {
+      const mergedLabel = format(parseISO(pr.merged_at), 'MMM yyyy');
+      const mergedBucket = timelineMap.get(mergedLabel) || { opened: 0, merged: 0, closed: 0 };
+      mergedBucket.merged++;
+      timelineMap.set(mergedLabel, mergedBucket);
+    } else if (pr.closed_at) {
+      const closedLabel = format(parseISO(pr.closed_at), 'MMM yyyy');
+      const closedBucket = timelineMap.get(closedLabel) || { opened: 0, merged: 0, closed: 0 };
+      closedBucket.closed++;
+      timelineMap.set(closedLabel, closedBucket);
+    }
+    if (pr.merged_at) {
+      const duration = differenceInMinutes(parseISO(pr.merged_at), parseISO(pr.created_at)) / 60;
+      const bucket = duration < 6 ? 'Under 6h' : duration < 24 ? '6–24h' : duration < 72 ? '1–3d' : duration < 168 ? '3–7d' : duration < 720 ? '7–30d' : '30d+';
+      mergeBuckets.set(bucket, (mergeBuckets.get(bucket) || 0) + 1);
+    }
     const labels = pr.labels || [];
     const titleTokens = pr.title
       .toLowerCase()
@@ -65,6 +94,8 @@ export function buildDeepAnalyticsSummary(pullRequests: PullRequest[]): DeepAnal
       .filter((item) => item.mentions >= 2 || item.mergedMentions >= 1)
       .sort((a, b) => b.mergedMentions - a.mergedMentions || b.mentions - a.mentions)
       .slice(0, 20),
+    activityTimeline: Array.from(timelineMap.entries()).sort(([a], [b]) => new Date(`1 ${a}`).getTime() - new Date(`1 ${b}`).getTime()).map(([label, values]) => ({ label, ...values })),
+    mergeTimeBuckets: Array.from(mergeBuckets.entries()).map(([label, count]) => ({ label, count })),
   };
 }
 

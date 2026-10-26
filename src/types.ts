@@ -52,6 +52,8 @@ export interface DeepAnalyticsSummary {
   maintainerAuthoredPct: number;
   topMaintainerActivity: Array<{ username: string; mergedPRs: number; totalPRs: number }>;
   topicCandidates: Array<{ topic: string; mentions: number; mergedMentions: number; prNumbers: number[] }>;
+  activityTimeline: Array<{ label: string; opened: number; merged: number; closed: number }>;
+  mergeTimeBuckets: Array<{ label: string; count: number }>;
 }
 
 export interface AIInsightTopic {
@@ -85,8 +87,26 @@ export interface ChangedFileStat {
 
 export interface DeepFileAnalytics {
   files: ChangedFileStat[];
+  prSizes: Array<{ prNumber: number; filesChanged: number; additions: number; deletions: number; changes: number; mergedAt: string | null }>;
   analyzedMergedPRs: number;
   availableMergedPRs: number;
+  isPartial: boolean;
+}
+
+export interface ReviewResponseRow {
+  prNumber: number;
+  firstReviewHours: number | null;
+  firstMaintainerReviewHours: number | null;
+  reviewCount: number;
+  approvalCount: number;
+  changesRequestedCount: number;
+  reviewerLogins: string[];
+}
+
+export interface DeepReviewAnalytics {
+  rows: ReviewResponseRow[];
+  scannedPRs: number;
+  availablePRs: number;
   isPartial: boolean;
 }
 
