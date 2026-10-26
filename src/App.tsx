@@ -6,6 +6,7 @@ import { CompactCharts } from './components/charts/CompactCharts';
 import { ContributorList } from './components/ContributorList';
 import { PullRequestsList } from './components/PullRequestsList';
 import { OrganizationOverview } from './components/OrganizationOverview';
+import { OrganizationComparison } from './components/OrganizationComparison';
 import { DeepAnalyticsPanel } from './components/DeepAnalyticsPanel';
 import { DeepAnalyticsReport } from './components/DeepAnalyticsReport';
 import { UserModal } from './components/UserModal';
@@ -27,7 +28,8 @@ import { AlertCircle, RefreshCw, KeyRound, Loader2, Zap } from 'lucide-react';
 export function App() {
   const [stats, setStats] = useState<RepoStats | null>(null);
   const [organization, setOrganization] = useState<OrganizationStats | null>(null);
-  const [view, setView] = useState<'home' | 'organization' | 'repository' | 'deep-report'>('home');
+  const [comparisonStats, setComparisonStats] = useState<RepoStats[] | null>(null);
+  const [view, setView] = useState<'home' | 'organization' | 'repository' | 'deep-report' | 'comparison'>('home');
   const [loading, setLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState<string>('');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -87,6 +89,7 @@ export function App() {
           const ownerResult = await fetchOrganizationOverview(repoQuery, forceRefresh);
           setOrganization(ownerResult);
           setStats(null);
+          setComparisonStats(null);
           setView('organization');
           window.history.replaceState({}, '', `#org/${ownerResult.login}`);
           return;
@@ -102,6 +105,7 @@ export function App() {
         );
         setStats(result);
         setOrganization(null);
+        setComparisonStats(null);
         const shouldOpenDeep = openDeepAfterLoad.current;
         openDeepAfterLoad.current = false;
         setView(shouldOpenDeep ? 'deep-report' : 'repository');
@@ -130,6 +134,30 @@ export function App() {
     setView('deep-report');
     window.history.pushState({}, '', `#deep/${stats.fullName}`);
   }, [stats]);
+
+  const handleCompareRepositories = useCallback(async (fullNames: string[]) => {
+    if (fullNames.length < 2) return;
+    setLoading(true);
+    setError(null);
+    setLoadingProgress(`Comparing ${fullNames.length} repositories…`);
+    try {
+      const results: RepoStats[] = [];
+      for (let index = 0; index < fullNames.length; index += 1) {
+        setLoadingProgress(`Comparing repository ${index + 1} of ${fullNames.length}…`);
+        results.push(await fetchRepoStats(fullNames[index], timeFilter, (message) => setLoadingProgress(message), false, dateRange));
+      }
+      setComparisonStats(results);
+      setOrganization(null);
+      setStats(null);
+      setView('comparison');
+      window.history.replaceState({}, '', `#compare/${results.map((result) => result.fullName).join(',')}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Repository comparison could not be completed.');
+    } finally {
+      setLoading(false);
+      setLoadingProgress('');
+    }
+  }, [dateRange, timeFilter]);
 
   useEffect(() => {
     const loadFromHash = () => {
@@ -188,6 +216,7 @@ export function App() {
           setView('home');
           setStats(null);
           setOrganization(null);
+          setComparisonStats(null);
           setCurrentQuery('');
           window.history.replaceState({}, '', window.location.pathname);
         }}
@@ -289,9 +318,22 @@ export function App() {
           />
         )}
 
+        {comparisonStats && view === 'comparison' && (
+          <OrganizationComparison
+            stats={comparisonStats}
+            timeFilter={timeFilter}
+            dateRange={dateRange}
+            onBack={() => {
+              setView('organization');
+              setComparisonStats(null);
+            }}
+            onOpenRepository={handleOpenRepository}
+          />
+        )}
+
         {/* Organization workspace */}
         {organization && view === 'organization' && (
-          <OrganizationOverview stats={organization} onOpenRepository={handleOpenRepository} />
+          <OrganizationOverview stats={organization} onOpenRepository={handleOpenRepository} onCompare={handleCompareRepositories} />
         )}
 
         {/* Repository workspace */}

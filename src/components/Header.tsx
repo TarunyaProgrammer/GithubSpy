@@ -8,7 +8,7 @@ interface HeaderProps {
   rateLimit: RateLimitInfo | null;
   hasPersonalToken: boolean;
   onOpenTokenModal: () => void;
-  view: 'home' | 'organization' | 'repository' | 'deep-report';
+  view: 'home' | 'organization' | 'repository' | 'deep-report' | 'comparison';
   onNavigateHome: () => void;
 }
 
