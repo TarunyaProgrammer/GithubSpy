@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { GitPullRequest, GitMerge, GitPullRequestClosed, ExternalLink, ChevronDown, ChevronUp, Search } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { PullRequest } from '../types';
@@ -11,16 +11,27 @@ interface PullRequestsListProps {
 export const PullRequestsList: React.FC<PullRequestsListProps> = ({ pullRequests, onSelectUser }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [filterQuery, setFilterQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'merged' | 'closed'>('all');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'relevance'>('newest');
 
-  const filteredPRs = pullRequests.filter((pr) => {
-    if (!filterQuery.trim()) return true;
-    const query = filterQuery.toLowerCase().trim();
-    return (
-      pr.title.toLowerCase().includes(query) ||
-      pr.user.login.toLowerCase().includes(query) ||
-      String(pr.number).includes(query)
-    );
-  });
+  const filteredPRs = useMemo(() => pullRequests
+    .filter((pr) => {
+      if (statusFilter === 'open' && pr.state !== 'open') return false;
+      if (statusFilter === 'merged' && !pr.merged_at) return false;
+      if (statusFilter === 'closed' && (pr.state !== 'closed' || pr.merged_at)) return false;
+      if (!filterQuery.trim()) return true;
+      const query = filterQuery.toLowerCase().trim();
+      return pr.title.toLowerCase().includes(query) || pr.user.login.toLowerCase().includes(query) || String(pr.number).includes(query);
+    })
+    .sort((a, b) => {
+      if (sortBy === 'oldest') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      if (sortBy === 'relevance' && filterQuery.trim()) {
+        const query = filterQuery.toLowerCase().trim();
+        const score = (pr: typeof a) => (pr.title.toLowerCase().includes(query) ? 2 : 0) + (pr.user.login.toLowerCase().includes(query) ? 1 : 0);
+        return score(b) - score(a) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    }), [pullRequests, filterQuery, statusFilter, sortBy]);
 
   return (
     <div className="w-full my-4 sm:my-6 bg-white rounded-3xl border border-[#E5E0D8] overflow-hidden shadow-xs">
@@ -54,6 +65,7 @@ export const PullRequestsList: React.FC<PullRequestsListProps> = ({ pullRequests
 
       {isOpen && (
         <div className="border-t border-[#E5E0D8] p-3.5 sm:p-6 space-y-3 sm:space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative max-w-sm w-full">
             <Search className="w-3.5 h-3.5 text-[#8F8B83] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -64,6 +76,18 @@ export const PullRequestsList: React.FC<PullRequestsListProps> = ({ pullRequests
               aria-label="Search contribution attempts"
               className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-[#F7F5F0] border border-[#E5E0D8] text-[#161514] placeholder-[#8F8B83] focus:outline-none focus:border-[#EAA036] font-mono"
             />
+          </div>
+          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)} aria-label="Filter pull requests by status" className="rounded-xl border border-[#E5E0D8] bg-white px-3 py-1.5 text-xs text-[#161514] focus:border-[#EAA036] focus:outline-none">
+            <option value="all">All statuses</option>
+            <option value="open">Open</option>
+            <option value="merged">Merged</option>
+            <option value="closed">Closed without merge</option>
+          </select>
+          <select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)} aria-label="Sort pull requests" className="rounded-xl border border-[#E5E0D8] bg-white px-3 py-1.5 text-xs text-[#161514] focus:border-[#EAA036] focus:outline-none">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="relevance">Relevance</option>
+          </select>
           </div>
 
           <div className="overflow-x-auto -mx-3.5 sm:mx-0 px-3.5 sm:px-0">

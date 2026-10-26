@@ -10,6 +10,8 @@ interface GraphQLPRNode {
   closedAt: string | null;
   url: string;
   authorAssociation: string;
+  body?: string | null;
+  labels?: { nodes: Array<{ name: string }> };
   author: {
     login: string;
     avatarUrl: string;
@@ -91,6 +93,7 @@ export async function fetchRepoViaGraphQL(
   owner: string,
   repo: string,
   filterDate: Date,
+  filterEnd: Date | null = null,
   onProgress?: (message: string) => void
 ): Promise<{
   pullRequests: PullRequest[];
@@ -155,6 +158,9 @@ export async function fetchRepoViaGraphQL(
       let crossedDateBoundary = false;
       for (const node of nodes) {
         const createdTime = new Date(node.createdAt).getTime();
+        if (filterEnd && createdTime > filterEnd.getTime()) {
+          continue;
+        }
         // If outside timeframe, we have crossed the boundary
         if (!isAllTime && createdTime < filterDate.getTime()) {
           crossedDateBoundary = true;
@@ -204,6 +210,9 @@ export async function fetchRepoViaGraphQL(
         repository_url: `https://github.com/${fullName}`,
         repository_name: fullName,
         author_association: association,
+        labels: node.labels?.nodes?.map((label) => label.name).filter(Boolean) || [],
+        body: node.body ? node.body.slice(0, 4000) : null,
+        merged_by: node.mergedBy?.login || null,
         user: {
           login: authorLogin,
           avatar_url: authorAvatar,

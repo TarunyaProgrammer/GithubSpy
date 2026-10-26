@@ -8,12 +8,16 @@ interface HeaderProps {
   rateLimit: RateLimitInfo | null;
   hasPersonalToken: boolean;
   onOpenTokenModal: () => void;
+  view: 'home' | 'organization' | 'repository' | 'deep-report';
+  onNavigateHome: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   rateLimit,
   hasPersonalToken,
   onOpenTokenModal,
+  view,
+  onNavigateHome,
 }) => {
   const [isExplainerOpen, setIsExplainerOpen] = useState(false);
   const isHighLimit = rateLimit ? rateLimit.limit >= 1000 : false;
@@ -28,6 +32,12 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex-shrink-0">
             <BrandLogo size="md" />
           </div>
+
+          <nav className="hidden items-center gap-1 md:flex" aria-label="Primary navigation">
+            <button type="button" onClick={onNavigateHome} className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${view === 'home' ? 'bg-white text-[#161514] shadow-xs' : 'text-[#65615B] hover:text-[#161514]'}`}>Home</button>
+            <span className="rounded-lg px-2.5 py-1.5 text-xs text-[#8F8B83]" aria-current={view === 'organization' ? 'page' : undefined}>Organization view</span>
+            <span className="rounded-lg px-2.5 py-1.5 text-xs text-[#8F8B83]" aria-current={view === 'repository' ? 'page' : undefined}>Repository view</span>
+          </nav>
 
           {/* Right Actions - Warm Editorial Styling */}
           <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-3 flex-shrink-0">

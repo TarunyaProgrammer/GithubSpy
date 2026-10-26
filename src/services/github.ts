@@ -7,6 +7,11 @@ import type {
   TimeFilter,
   RateLimitInfo,
   RepoMetrics,
+  DateRange,
+  OrganizationStats,
+  RepositorySummary,
+  ChangedFileStat,
+  DeepFileAnalytics,
 } from '../types';
 import { getActiveToken } from './token';
 import { appCache } from './cache';
@@ -93,7 +98,7 @@ export function parseGitHubUrl(input: string): { owner: string; repo: string } |
   return null;
 }
 
-export function getTimeFilterDate(filter: TimeFilter): Date {
+export function getTimeFilterDate(filter: TimeFilter, dateRange?: DateRange): Date {
   const now = new Date();
   switch (filter) {
     case '2w':
@@ -104,10 +109,17 @@ export function getTimeFilterDate(filter: TimeFilter): Date {
       return subDays(now, 90);
     case '6m':
       return subDays(now, 180);
+    case 'custom':
+      return dateRange?.from ? new Date(`${dateRange.from}T00:00:00`) : subDays(now, 30);
     case 'all':
     default:
       return new Date(0);
   }
+}
+
+function getTimeFilterEnd(filter: TimeFilter, dateRange?: DateRange): Date | null {
+  if (filter !== 'custom' || !dateRange?.to) return null;
+  return new Date(`${dateRange.to}T23:59:59.999`);
 }
 
 async function fetchGitHubApi(endpoint: string, options: RequestInit = {}): Promise<{ data: any; headers: Headers }> {
@@ -122,10 +134,15 @@ async function fetchGitHubApi(endpoint: string, options: RequestInit = {}): Prom
   }
 
   const url = endpoint.startsWith('http') ? endpoint : `https://api.github.com${endpoint}`;
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch {
+    throw new Error('GitHub could not be reached. Check your internet connection or whether this browser blocks the GitHub API.');
+  }
 
   notifyRateLimit(response.headers, Boolean(token));
 
@@ -173,6 +190,7 @@ async function fetchPullRequestsViaRest(
   repo: string,
   fullName: string,
   filterDate: Date,
+  filterEnd: Date | null,
   maxPages: number,
   onProgress?: (message: string) => void
 ): Promise<{ pullRequests: PullRequest[]; maintainerLogins: string[]; totalRepositoryPRs: number }> {
@@ -191,6 +209,7 @@ async function fetchPullRequestsViaRest(
     let crossedDateBoundary = false;
     for (const pr of rawPulls) {
       const createdTime = parseISO(pr.created_at).getTime();
+      if (filterEnd && createdTime > filterEnd.getTime()) continue;
       if (!isAllTime && createdTime < filterDate.getTime()) {
         crossedDateBoundary = true;
         break; // Stop collecting older PRs outside the timeframe
@@ -215,6 +234,9 @@ async function fetchPullRequestsViaRest(
         repository_url: pr.base?.repo?.html_url || `https://github.com/${fullName}`,
         repository_name: fullName,
         author_association: authorAssociation,
+        labels: Array.isArray(pr.labels) ? pr.labels.map((label: any) => label.name).filter(Boolean).slice(0, 12) : [],
+        body: typeof pr.body === 'string' ? pr.body.slice(0, 4000) : null,
+        merged_by: pr.merged_by?.login || null,
         user: {
           login: authorLogin,
           avatar_url: pr.user?.avatar_url || `https://github.com/${authorLogin}.png`,
@@ -237,8 +259,13 @@ export async function fetchRepoStats(
   rawInput: string,
   timeFilter: TimeFilter,
   onProgress?: (message: string) => void,
-  forceRefresh = false
+  forceRefresh = false,
+  dateRange?: DateRange
 ): Promise<RepoStats> {
+  if (timeFilter === 'custom' && (!dateRange?.from || !dateRange.to || dateRange.from > dateRange.to)) {
+    throw new Error('Choose a valid custom date range with both a start date and an end date.');
+  }
+
   const target = parseGitHubUrl(rawInput);
   if (!target) {
     throw new Error('Enter a GitHub project link, such as github.com/facebook/react, or use owner/project.');
@@ -246,10 +273,11 @@ export async function fetchRepoStats(
 
   const { owner, repo } = target;
   const fullName = `${owner}/${repo}`;
-  const rawCacheKey = `repo_raw_${fullName}_${timeFilter}`;
+  const rawCacheKey = `repo_raw_${fullName}_${timeFilter}_${dateRange?.from || ''}_${dateRange?.to || ''}`;
 
   onProgress?.(forceRefresh ? `Force refreshing live data for ${fullName}...` : `Inspecting ${fullName}...`);
-  const filterDate = getTimeFilterDate(timeFilter);
+  const filterDate = getTimeFilterDate(timeFilter, dateRange);
+  const filterEnd = getTimeFilterEnd(timeFilter, dateRange);
   const token = getActiveToken();
 
   // Step 1: Retrieve or fetch raw repository PRs & maintainers (cached for 10 minutes per timeframe)
@@ -263,12 +291,13 @@ export async function fetchRepoStats(
       repo,
       fullName,
       filterDate,
+      filterEnd,
       token ? (filterDate.getTime() === 0 ? 10 : 20) : (filterDate.getTime() === 0 ? 5 : 10),
       onProgress
     );
 
     const activityPromise = token
-      ? fetchRepoViaGraphQL(owner, repo, filterDate, onProgress).then(async (result) => {
+      ? fetchRepoViaGraphQL(owner, repo, filterDate, filterEnd, onProgress).then(async (result) => {
           if (!result) return fallback();
           if (result.rateLimit) {
             broadcastRateLimit({ ...result.rateLimit, isAuthenticated: true });
@@ -406,6 +435,71 @@ export async function fetchRepoStats(
 }
 
 /**
+ * Expensive, explicit deep-scan step. File metadata is not requested during
+ * the normal repository overview; it is fetched only after the report opens.
+ */
+export async function fetchDeepFileAnalytics(
+  owner: string,
+  repo: string,
+  pullRequests: PullRequest[],
+  onProgress?: (message: string) => void
+): Promise<DeepFileAnalytics> {
+  const mergedPRs = pullRequests
+    .filter((pr) => Boolean(pr.merged_at))
+    .sort((a, b) => new Date(b.merged_at as string).getTime() - new Date(a.merged_at as string).getTime());
+  const selectedPRs = mergedPRs.slice(0, 25);
+  const fileMap = new Map<string, ChangedFileStat>();
+
+  for (let index = 0; index < selectedPRs.length; index += 1) {
+    const pr = selectedPRs[index];
+    onProgress?.(`Reading changed files (${index + 1} of ${selectedPRs.length})…`);
+    try {
+      const result = await appCache.getOrFetch(
+        `pr_files_${owner}_${repo}_${pr.number}`,
+        async () => {
+          const { data } = await fetchGitHubApi(`/repos/${owner}/${repo}/pulls/${pr.number}/files?per_page=100`);
+          return Array.isArray(data) ? data.map((file: any) => ({
+            path: String(file.filename || 'unknown'),
+            additions: Number(file.additions || 0),
+            deletions: Number(file.deletions || 0),
+            changes: Number(file.changes || 0),
+          })) : [];
+        },
+        30 * 60 * 1000
+      );
+
+      for (const file of result.data as Array<{ path: string; additions: number; deletions: number; changes: number }>) {
+        const current = fileMap.get(file.path) || {
+          path: file.path,
+          additions: 0,
+          deletions: 0,
+          changes: 0,
+          mergedPRs: 0,
+          maintainerMergedPRs: 0,
+          prNumbers: [],
+        };
+        current.additions += file.additions;
+        current.deletions += file.deletions;
+        current.changes += file.changes;
+        current.mergedPRs += 1;
+        if (['OWNER', 'MEMBER', 'COLLABORATOR'].includes(pr.author_association || '')) current.maintainerMergedPRs += 1;
+        if (!current.prNumbers.includes(pr.number)) current.prNumbers.push(pr.number);
+        fileMap.set(file.path, current);
+      }
+    } catch {
+      // A single inaccessible PR should not invalidate the rest of the report.
+    }
+  }
+
+  return {
+    files: Array.from(fileMap.values()).sort((a, b) => b.maintainerMergedPRs - a.maintainerMergedPRs || b.mergedPRs - a.mergedPRs || b.changes - a.changes),
+    analyzedMergedPRs: selectedPRs.length,
+    availableMergedPRs: mergedPRs.length,
+    isPartial: mergedPRs.length > selectedPRs.length,
+  };
+}
+
+/**
  * Fetch detailed user statistics without exhausting Search API quotas.
  */
 export async function fetchUserStats(
@@ -444,6 +538,9 @@ export async function fetchUserStats(
           repository_url: `https://github.com/${activeRepoStats.fullName}`,
           repository_name: activeRepoStats.fullName,
           author_association: item.author_association || 'NONE',
+          labels: [],
+          body: null,
+          merged_by: null,
           user: {
             login: item.user?.login || username,
             avatar_url: item.user?.avatar_url || avatarUrl,
@@ -498,6 +595,77 @@ export async function fetchUserStats(
     repositories,
     pullRequests: existingPRs,
   };
+}
+
+function normalizeOwnerInput(rawInput: string): string {
+  const trimmed = rawInput.trim().replace(/^@/, '');
+  const parsed = parseGitHubUrl(trimmed);
+  if (parsed) return parsed.owner;
+  return trimmed.replace(/^https?:\/\/(www\.)?github\.com\//i, '').split('/')[0].trim();
+}
+
+/** Fetch a low-cost organization/user overview. Full PR scans remain opt-in. */
+export async function fetchOrganizationOverview(
+  rawInput: string,
+  forceRefresh = false
+): Promise<OrganizationStats> {
+  const login = normalizeOwnerInput(rawInput);
+  if (!/^[A-Za-z0-9_.-]+$/.test(login)) {
+    throw new Error('Enter a GitHub organization or username, such as microsoft or octocat.');
+  }
+
+  const cacheKey = `owner_overview_${login.toLowerCase()}`;
+  const result = await appCache.getOrFetch(
+    cacheKey,
+    async () => {
+      let ownerData: any = null;
+      let rawRepos: any[] = [];
+
+      try {
+        const response = await fetchGitHubApi(`/orgs/${encodeURIComponent(login)}/repos?per_page=100&sort=stars&direction=desc&type=all`);
+        rawRepos = Array.isArray(response.data) ? response.data : [];
+        ownerData = await fetchGitHubApi(`/orgs/${encodeURIComponent(login)}`).then((r) => r.data).catch(() => null);
+      } catch {
+        const response = await fetchGitHubApi(`/users/${encodeURIComponent(login)}/repos?per_page=100&sort=stars&direction=desc&type=owner`);
+        rawRepos = Array.isArray(response.data) ? response.data : [];
+        ownerData = await fetchGitHubApi(`/users/${encodeURIComponent(login)}`).then((r) => r.data).catch(() => null);
+      }
+
+      const repositories: RepositorySummary[] = rawRepos
+        .filter((repo) => !repo.archived)
+        .sort((a, b) => ((b.stargazers_count || 0) + (b.forks_count || 0)) - ((a.stargazers_count || 0) + (a.forks_count || 0)))
+        .slice(0, 20)
+        .map((repo) => ({
+          fullName: repo.full_name,
+          name: repo.name,
+          owner: repo.owner?.login || login,
+          description: repo.description || null,
+          stars: repo.stargazers_count || 0,
+          forks: repo.forks_count || 0,
+          openIssues: repo.open_issues_count || 0,
+          language: repo.language || null,
+          updatedAt: repo.updated_at,
+          pushedAt: repo.pushed_at || null,
+          isFork: Boolean(repo.fork),
+          htmlUrl: repo.html_url,
+        }));
+
+      return {
+        login,
+        name: ownerData?.name || ownerData?.login || login,
+        type: ownerData?.type === 'User' ? 'User' : 'Organization',
+        avatarUrl: ownerData?.avatar_url || `https://github.com/${login}.png`,
+        repoCount: ownerData?.public_repos ?? rawRepos.length,
+        totalStars: rawRepos.reduce((total, repo) => total + (repo.stargazers_count || 0), 0),
+        totalOpenIssues: rawRepos.reduce((total, repo) => total + (repo.open_issues_count || 0), 0),
+        repositories,
+      } satisfies Omit<OrganizationStats, 'isCached' | 'cachedAt'>;
+    },
+    15 * 60 * 1000,
+    forceRefresh
+  );
+
+  return { ...result.data, isCached: result.isCached, cachedAt: result.timestamp };
 }
 
 /**

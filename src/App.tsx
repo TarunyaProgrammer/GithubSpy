@@ -1,32 +1,39 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Header } from './components/Header';
 import { SearchSection } from './components/SearchSection';
 import { MetricsBar } from './components/MetricsBar';
 import { CompactCharts } from './components/charts/CompactCharts';
 import { ContributorList } from './components/ContributorList';
 import { PullRequestsList } from './components/PullRequestsList';
+import { OrganizationOverview } from './components/OrganizationOverview';
+import { DeepAnalyticsPanel } from './components/DeepAnalyticsPanel';
+import { DeepAnalyticsReport } from './components/DeepAnalyticsReport';
 import { UserModal } from './components/UserModal';
 import { TokenModal } from './components/TokenModal';
 import { Footer } from './components/Footer';
 import {
   fetchRepoStats,
   fetchUserStats,
+  fetchOrganizationOverview,
   onRateLimitUpdate,
   checkCurrentRateLimit,
   parseGitHubUrl,
 } from './services/github';
 import { hasPersonalToken } from './services/token';
 import { addRecentRepo } from './services/history';
-import type { RepoStats, UserStats, TimeFilter, RateLimitInfo } from './types';
+import type { DateRange, OrganizationStats, RepoStats, UserStats, TimeFilter, RateLimitInfo } from './types';
 import { AlertCircle, RefreshCw, KeyRound, Loader2, Zap } from 'lucide-react';
 
 export function App() {
   const [stats, setStats] = useState<RepoStats | null>(null);
+  const [organization, setOrganization] = useState<OrganizationStats | null>(null);
+  const [view, setView] = useState<'home' | 'organization' | 'repository' | 'deep-report'>('home');
   const [loading, setLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState<string>('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('1m');
+  const [dateRange, setDateRange] = useState<DateRange>({ from: '', to: '' });
   const [currentQuery, setCurrentQuery] = useState('');
 
   const [selectedUserStats, setSelectedUserStats] = useState<UserStats | null>(null);
@@ -35,6 +42,7 @@ export function App() {
   const [rateLimit, setRateLimit] = useState<RateLimitInfo | null>(null);
   const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
   const [tokenActive, setTokenActive] = useState(hasPersonalToken());
+  const openDeepAfterLoad = useRef(false);
 
   // Ensure clean root classes (no dark mode class)
   useEffect(() => {
@@ -55,13 +63,14 @@ export function App() {
   }, []);
 
   const handleSearch = useCallback(
-    async (repoQuery: string, filter: TimeFilter, forceRefresh = false) => {
+    async (repoQuery: string, filter: TimeFilter, nextDateRange?: DateRange, forceRefresh = false) => {
       if (!repoQuery.trim()) return;
 
       const parsed = parseGitHubUrl(repoQuery);
       const cleanName = parsed ? `${parsed.owner}/${parsed.repo}` : repoQuery.trim();
       setCurrentQuery(cleanName);
       setTimeFilter(filter);
+      if (nextDateRange) setDateRange(nextDateRange);
 
       if (forceRefresh) {
         setIsRefreshing(true);
@@ -73,15 +82,30 @@ export function App() {
       setLoadingProgress(forceRefresh ? 'Getting the latest activity from GitHub…' : 'Connecting to GitHub…');
 
       try {
+        if (!parsed) {
+          setLoadingProgress('Loading the organization repository map…');
+          const ownerResult = await fetchOrganizationOverview(repoQuery, forceRefresh);
+          setOrganization(ownerResult);
+          setStats(null);
+          setView('organization');
+          window.history.replaceState({}, '', `#org/${ownerResult.login}`);
+          return;
+        }
         const result = await fetchRepoStats(
           repoQuery,
           filter,
           (msg) => {
             setLoadingProgress(msg);
           },
-          forceRefresh
+          forceRefresh,
+          nextDateRange
         );
         setStats(result);
+        setOrganization(null);
+        const shouldOpenDeep = openDeepAfterLoad.current;
+        openDeepAfterLoad.current = false;
+        setView(shouldOpenDeep ? 'deep-report' : 'repository');
+        window.history.replaceState({}, '', `#${shouldOpenDeep ? 'deep' : 'repo'}/${result.fullName}`);
         addRecentRepo(result.fullName);
         setLoadingProgress('');
       } catch (err) {
@@ -95,6 +119,40 @@ export function App() {
     },
     []
   );
+
+  const handleOpenRepository = useCallback((fullName: string) => {
+    handleSearch(fullName, timeFilter, dateRange);
+  }, [handleSearch, timeFilter, dateRange]);
+
+  const handleOpenDeepReport = useCallback(() => {
+    if (!stats) return;
+    openDeepAfterLoad.current = false;
+    setView('deep-report');
+    window.history.pushState({}, '', `#deep/${stats.fullName}`);
+  }, [stats]);
+
+  useEffect(() => {
+    const loadFromHash = () => {
+      const hash = window.location.hash.replace(/^#/, '');
+      if (hash.startsWith('org/')) {
+        const owner = decodeURIComponent(hash.slice(4));
+        if (owner) handleSearch(owner, '1m', { from: '', to: '' });
+      } else if (hash.startsWith('repo/')) {
+        const repo = decodeURIComponent(hash.slice(5));
+        if (repo) handleSearch(repo, '1m', { from: '', to: '' });
+      } else if (hash.startsWith('deep/')) {
+        const repo = decodeURIComponent(hash.slice(5));
+        if (repo) {
+          openDeepAfterLoad.current = true;
+          handleSearch(repo, '1m', { from: '', to: '' });
+        }
+      }
+    };
+
+    loadFromHash();
+    window.addEventListener('hashchange', loadFromHash);
+    return () => window.removeEventListener('hashchange', loadFromHash);
+  }, [handleSearch]);
 
   const handleSelectUser = useCallback(
     async (username: string) => {
@@ -125,19 +183,30 @@ export function App() {
         rateLimit={rateLimit}
         hasPersonalToken={tokenActive}
         onOpenTokenModal={() => setIsTokenModalOpen(true)}
+        view={view}
+        onNavigateHome={() => {
+          setView('home');
+          setStats(null);
+          setOrganization(null);
+          setCurrentQuery('');
+          window.history.replaceState({}, '', window.location.pathname);
+        }}
       />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pb-8 sm:pb-12">
-        {/* Direct-to-Action Search Hero */}
-        <SearchSection
-          onSearch={handleSearch}
-          loading={loading}
-          loadingProgress={loadingProgress}
-          initialQuery={currentQuery}
-          timeFilter={timeFilter}
-          onTimeFilterChange={setTimeFilter}
-        />
+        {view !== 'deep-report' && (
+          <SearchSection
+            onSearch={handleSearch}
+            loading={loading}
+            loadingProgress={loadingProgress}
+            initialQuery={currentQuery}
+            timeFilter={timeFilter}
+            onTimeFilterChange={setTimeFilter}
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+          />
+        )}
 
         {/* Zero-Quota Warning Banner */}
         {rateLimit && rateLimit.remaining === 0 && !tokenActive && !error && (
@@ -206,8 +275,27 @@ export function App() {
           </div>
         )}
 
-        {/* Results Dashboard */}
-        {stats && (
+        {stats && view === 'deep-report' && (
+          <DeepAnalyticsReport
+            stats={stats}
+            timeFilter={timeFilter}
+            dateRange={dateRange}
+            hasPersonalToken={tokenActive}
+            onOpenTokenModal={() => setIsTokenModalOpen(true)}
+            onBack={() => {
+              setView('repository');
+              window.history.replaceState({}, '', `#repo/${stats.fullName}`);
+            }}
+          />
+        )}
+
+        {/* Organization workspace */}
+        {organization && view === 'organization' && (
+          <OrganizationOverview stats={organization} onOpenRepository={handleOpenRepository} />
+        )}
+
+        {/* Repository workspace */}
+        {stats && view === 'repository' && (
           <div className="space-y-3 sm:space-y-4 animate-fade-in">
             {/* Core Metrics Overview with Formula Tooltips & Live Cache Sync */}
             <MetricsBar
@@ -215,12 +303,18 @@ export function App() {
               fullName={stats.fullName}
               isCached={stats.isCached}
               cachedAt={stats.cachedAt}
-              onRefresh={() => handleSearch(stats.fullName, timeFilter, true)}
+              onRefresh={() => handleSearch(stats.fullName, timeFilter, dateRange, true)}
               isRefreshing={isRefreshing}
             />
 
             {/* Space-Efficient Visual Analytics: Donut PR Resolution & Reviewer vs Community */}
             <CompactCharts metrics={stats.metrics} />
+
+            <DeepAnalyticsPanel
+              hasPersonalToken={tokenActive}
+              onOpenReport={handleOpenDeepReport}
+              onOpenTokenModal={() => setIsTokenModalOpen(true)}
+            />
 
             {/* Contributor Grid & Role Filters (All-Time Contributors) */}
             <ContributorList
@@ -237,7 +331,7 @@ export function App() {
         )}
 
         {/* Empty State */}
-        {!stats && !loading && !error && (
+        {!stats && !organization && !loading && !error && (
           <div className="mt-12 sm:mt-16 py-10 sm:py-14 px-4 text-center rounded-3xl border border-[#E5E0D8] bg-white shadow-xs">
             <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 rounded-2xl bg-[#EFECE6] flex items-center justify-center text-[#787571]">
               <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />

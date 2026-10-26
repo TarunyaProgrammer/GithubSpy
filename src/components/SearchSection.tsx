@@ -2,15 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Search, Loader2, ArrowRight, Sparkles, X, History, Trash2, Check } from 'lucide-react';
 import { parseGitHubUrl } from '../services/github';
 import { getRecentRepos, addRecentRepo, clearLocalStorageAndHistory } from '../services/history';
-import type { TimeFilter } from '../types';
+import type { DateRange, TimeFilter } from '../types';
 
 interface SearchSectionProps {
-  onSearch: (repoUrl: string, filter: TimeFilter) => void;
+  onSearch: (repoUrl: string, filter: TimeFilter, dateRange?: DateRange) => void;
   loading: boolean;
   loadingProgress?: string;
   initialQuery?: string;
   timeFilter: TimeFilter;
   onTimeFilterChange: (filter: TimeFilter) => void;
+  dateRange: DateRange;
+  onDateRangeChange: (range: DateRange) => void;
 }
 
 const PRESET_REPOS = [
@@ -28,6 +30,7 @@ const TIME_FILTERS: { label: string; value: TimeFilter }[] = [
   { label: 'Last 3 months', value: '3m' },
   { label: 'Last 6 months', value: '6m' },
   { label: 'All available', value: 'all' },
+  { label: 'Custom dates', value: 'custom' },
 ];
 
 export const SearchSection: React.FC<SearchSectionProps> = ({
@@ -37,6 +40,8 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
   initialQuery = '',
   timeFilter,
   onTimeFilterChange,
+  dateRange,
+  onDateRangeChange,
 }) => {
   const [inputVal, setInputVal] = useState(initialQuery);
   const [recentRepos, setRecentRepos] = useState<string[]>([]);
@@ -66,21 +71,21 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
     setInputVal(cleanFullName);
     const updated = addRecentRepo(cleanFullName);
     setRecentRepos(updated);
-    onSearch(cleanFullName, timeFilter);
+    onSearch(cleanFullName, timeFilter, dateRange);
   };
 
   const handlePresetClick = (val: string) => {
     setInputVal(val);
     const updated = addRecentRepo(val);
     setRecentRepos(updated);
-    onSearch(val, timeFilter);
+    onSearch(val, timeFilter, dateRange);
   };
 
   const handleRecentClick = (val: string) => {
     setInputVal(val);
     const updated = addRecentRepo(val);
     setRecentRepos(updated);
-    onSearch(val, timeFilter);
+    onSearch(val, timeFilter, dateRange);
   };
 
   const handleClearStorage = () => {
@@ -90,6 +95,11 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
     setTimeout(() => {
       setClearingStorage(false);
     }, 2200);
+  };
+
+  const handleCustomRun = () => {
+    if (!inputVal.trim() || !dateRange.from || !dateRange.to || dateRange.from > dateRange.to || loading) return;
+    onSearch(inputVal.trim(), 'custom', dateRange);
   };
 
   return (
@@ -134,7 +144,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
                 type="text"
                 value={inputVal}
                 onChange={(e) => setInputVal(e.target.value)}
-                placeholder="Paste a GitHub link or enter owner/project"
+                placeholder="Paste a repo link, owner/project, or organization name"
                 className="w-full bg-transparent py-2 text-xs xs:text-sm sm:text-base text-[#161514] placeholder-[#8F8B83] focus:outline-none font-mono"
                 disabled={loading}
                 autoComplete="off"
@@ -201,8 +211,8 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
                   key={f.value}
                   onClick={() => {
                     onTimeFilterChange(f.value);
-                    if (inputVal.trim()) {
-                      onSearch(inputVal.trim(), f.value);
+                    if (inputVal.trim() && (f.value !== 'custom' || (dateRange.from && dateRange.to))) {
+                      onSearch(inputVal.trim(), f.value, dateRange);
                     }
                   }}
                   className={`px-3 py-1.5 rounded-lg text-xs transition-all whitespace-nowrap ${
@@ -217,6 +227,41 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
             </div>
           </div>
         </div>
+
+        {timeFilter === 'custom' && (
+          <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 text-left px-1 max-w-md mx-auto" aria-label="Choose custom date range">
+            <label className="text-[11px] font-medium text-[#65615B]">
+              From
+              <input
+                type="date"
+                value={dateRange.from}
+                max={dateRange.to || undefined}
+                onChange={(event) => onDateRangeChange({ ...dateRange, from: event.target.value })}
+                className="mt-1 w-full rounded-xl border border-[#E5E0D8] bg-white px-3 py-2 text-xs text-[#161514] focus:border-[#EAA036] focus:outline-none"
+              />
+            </label>
+            <label className="text-[11px] font-medium text-[#65615B]">
+              To
+              <input
+                type="date"
+                value={dateRange.to}
+                min={dateRange.from || undefined}
+                onChange={(event) => onDateRangeChange({ ...dateRange, to: event.target.value })}
+                className="mt-1 w-full rounded-xl border border-[#E5E0D8] bg-white px-3 py-2 text-xs text-[#161514] focus:border-[#EAA036] focus:outline-none"
+              />
+            </label>
+            <p className="xs:col-span-2 text-[11px] text-[#787571]">Choose both dates, then run the search to analyze that exact window.</p>
+            <button
+              type="button"
+              onClick={handleCustomRun}
+              disabled={!inputVal.trim() || !dateRange.from || !dateRange.to || dateRange.from > dateRange.to || loading}
+              className="xs:col-span-2 inline-flex min-h-[40px] items-center justify-center gap-2 rounded-xl bg-[#EAA036] px-4 py-2 text-xs font-semibold text-[#161514] shadow-xs transition-all hover:bg-[#DF9126] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              <span>Run custom range</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2 px-1 text-xs border-t border-[#E5E0D8]/60 mt-1">
           <div className="flex items-center gap-1.5 flex-wrap justify-center sm:justify-start">
