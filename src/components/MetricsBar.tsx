@@ -7,6 +7,7 @@ interface MetricsBarProps {
   fullName: string;
   isCached?: boolean;
   cachedAt?: number;
+  isPartial?: boolean;
   onRefresh?: () => void;
   isRefreshing?: boolean;
 }
@@ -31,19 +32,17 @@ export const MetricsBar: React.FC<MetricsBarProps> = ({
   fullName,
   isCached,
   cachedAt,
+  isPartial,
   onRefresh,
   isRefreshing,
 }) => {
   const totalContributors = metrics.allTimeContributorsCount || metrics.contributorsCount;
-  const isHugeRepo = Boolean(
-    metrics.totalRepositoryPRs && metrics.totalRepositoryPRs > metrics.totalPRs
-  );
 
   const reviewMessage = metrics.avgMergeTimeHours === null
-    ? 'There are not enough merged contributions in this period to estimate review time.'
+    ? 'There are not enough merged pull requests in this period to estimate time to merge.'
     : metrics.avgMergeTimeHours <= 72
-      ? 'Recent merged contributions were reviewed within a few days.'
-      : 'Recent merged contributions took more time to review, so plan for a slower response.';
+      ? 'Recent pull requests were merged within a few days after opening.'
+      : 'Recent pull requests took longer to merge after opening, so plan for a slower response.';
 
   return (
     <section className="w-full my-4 sm:my-6" aria-labelledby="project-overview-title">
@@ -57,17 +56,15 @@ export const MetricsBar: React.FC<MetricsBarProps> = ({
           </h2>
         </div>
         <p className="text-xs text-[#787571]">
-          {isHugeRepo
-            ? `Based on ${metrics.totalPRs.toLocaleString()} pull requests analyzed (${metrics.totalRepositoryPRs?.toLocaleString()} total in repository) and ${totalContributors} known contributors.`
-            : `Based on ${metrics.totalPRs.toLocaleString()} pull requests and ${totalContributors} known contributors.`}
+          Based on {metrics.totalPRs.toLocaleString()} pull requests in this period and {totalContributors.toLocaleString()} known contributors.
         </p>
       </div>
 
-      {isHugeRepo && (
+      {isPartial && (
         <div className="mb-3 flex items-center gap-2 rounded-xl bg-[#EAA036]/10 border border-[#EAA036]/30 px-3.5 py-2 text-xs text-[#9E6212]">
           <AlertCircle className="w-4 h-4 flex-shrink-0 text-[#9E6212]" />
           <p>
-            <strong>Large repository:</strong> Analyzed the {metrics.totalPRs.toLocaleString()} most recent pull requests out of {metrics.totalRepositoryPRs?.toLocaleString()} total in project history to protect API limits and performance.
+            <strong>Partial results:</strong> GitHub stopped returning pages before this period was fully scanned. The metrics below use the pull requests we could load.
           </p>
         </div>
       )}
@@ -89,15 +86,11 @@ export const MetricsBar: React.FC<MetricsBarProps> = ({
           icon={GitPullRequest}
           label="Contributions analyzed"
           value={metrics.totalPRs.toLocaleString()}
-          detail={
-            isHugeRepo
-              ? `of ${metrics.totalRepositoryPRs?.toLocaleString()} total (${metrics.openCount} open)`
-              : `${metrics.openCount} still open`
-          }
+          detail={`${metrics.openCount} still open`}
         />
         <Metric icon={GitMerge} label="Contributions merged" value={`${metrics.mergeRatePct}%`} detail="of the pull requests checked" tone="emerald" />
-        <Metric icon={Clock} label="Typical review time" value={formatReviewTime(metrics.avgMergeTimeHours)} detail="from opening to merging" />
-        <Metric icon={Shield} label="People reviewing" value={metrics.maintainersCount} detail="maintainers found in this activity" tone="amber" />
+        <Metric icon={Clock} label="Typical time to merge" value={formatReviewTime(metrics.avgMergeTimeHours)} detail="from opening to merging" />
+        <Metric icon={Shield} label="Maintainers involved" value={metrics.maintainersCount} detail="authors or mergers in this activity" tone="amber" />
         <Metric icon={Users} label="Other active people" value={metrics.contributorsCount} detail={`${totalContributors} known across the project`} />
       </div>
 

@@ -1,5 +1,7 @@
 import type { PullRequest } from '../types';
-import { getActiveToken } from './token';
+import { getActiveToken, getTokenCacheScope } from './token';
+import { appCache } from './cache';
+import { fetchWithTimeout, RequestTimeoutError } from './request';
 
 interface GraphQLPRNode {
   number: number;
@@ -70,6 +72,12 @@ query GetRepoIntelligence($owner: String!, $name: String!, $cursor: String) {
         mergedBy {
           login
         }
+        labels(first: 10) {
+          nodes {
+            name
+          }
+        }
+        body
       }
     }
   }
@@ -94,11 +102,14 @@ export async function fetchRepoViaGraphQL(
   repo: string,
   filterDate: Date,
   filterEnd: Date | null = null,
-  onProgress?: (message: string) => void
+  onProgress?: (message: string) => void,
+  forceRefresh = false,
+  signal?: AbortSignal
 ): Promise<{
   pullRequests: PullRequest[];
   maintainerLogins: Set<string>;
   totalRepositoryPRs: number;
+  isPartial: boolean;
   rateLimit?: { limit: number; remaining: number; resetDate: Date };
 } | null> {
   const token = getActiveToken();
@@ -112,34 +123,57 @@ export async function fetchRepoViaGraphQL(
     let hasNextPage = true;
     let pageCount = 0;
     let totalRepoPRs = 0;
+    let partialFetch = false;
     let lastRateLimit: { limit: number; remaining: number; resetDate: Date } | undefined;
+    const tokenScope = getTokenCacheScope(token);
 
     const isAllTime = filterDate.getTime() === 0;
     const maxPages = isAllTime ? MAX_ALL_PAGES : MAX_TIMEFRAME_PAGES;
 
     while (hasNextPage && pageCount < maxPages) {
+      if (signal?.aborted) throw signal.reason;
       pageCount++;
-      const response = await fetch('https://api.github.com/graphql', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-          'User-Agent': 'GithubSpy-Terminal',
-        },
-        body: JSON.stringify({
-          query: REPO_INTELLIGENCE_QUERY,
-          variables: { owner, name: repo, cursor },
-        }),
-      });
-
-      if (!response.ok) {
-        if (allNodes.length > 0) break; // Partial success, use what we have
-        return null; // Fallback to REST
+      let result: GraphQLResponse;
+      try {
+        const pageKey = `repo_graphql_page_${tokenScope}_${fullName}_${cursor || 'first'}`;
+        const pageResult = await appCache.getOrFetch(
+          pageKey,
+          async () => {
+            const response = await fetchWithTimeout('https://api.github.com/graphql', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+                'User-Agent': 'GithubSpy-Terminal',
+              },
+              body: JSON.stringify({
+                query: REPO_INTELLIGENCE_QUERY,
+                variables: { owner, name: repo, cursor },
+              }),
+              signal,
+            });
+            if (!response.ok) throw new Error(`GitHub GraphQL returned ${response.status}.`);
+            return await response.json() as GraphQLResponse;
+          },
+          10 * 60 * 1000,
+          forceRefresh
+        );
+        result = pageResult.data;
+      } catch (error) {
+        if (signal?.aborted) throw error;
+        if (error instanceof RequestTimeoutError) throw error;
+        if (allNodes.length > 0) {
+          partialFetch = true;
+          break;
+        }
+        return null;
       }
 
-      const result: GraphQLResponse = await response.json();
       if (result.errors || !result.data?.repository) {
-        if (allNodes.length > 0) break;
+        if (allNodes.length > 0) {
+          partialFetch = true;
+          break;
+        }
         return null;
       }
 
@@ -224,9 +258,12 @@ export async function fetchRepoViaGraphQL(
       pullRequests,
       maintainerLogins,
       totalRepositoryPRs: totalRepoPRs || pullRequests.length,
+      isPartial: partialFetch || (hasNextPage && pageCount >= maxPages),
       rateLimit: lastRateLimit,
     };
-  } catch {
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    if (error instanceof RequestTimeoutError) throw error;
     // Network or parse failure, fallback gracefully to REST
     return null;
   }

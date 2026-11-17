@@ -15,8 +15,9 @@ import type {
   DeepFileAnalytics,
   DeepReviewAnalytics,
 } from '../types';
-import { getActiveToken } from './token';
+import { getActiveToken, getTokenCacheScope } from './token';
 import { appCache } from './cache';
+import { fetchWithTimeout, RequestTimeoutError } from './request';
 
 import { fetchRepoViaGraphQL } from './graphql';
 
@@ -138,32 +139,35 @@ async function fetchGitHubApi(endpoint: string, options: RequestInit = {}): Prom
   const url = endpoint.startsWith('http') ? endpoint : `https://api.github.com${endpoint}`;
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await fetchWithTimeout(url, {
       ...options,
       headers,
     });
-  } catch {
+  } catch (error) {
+    if (options.signal?.aborted) throw error;
+    if (error instanceof RequestTimeoutError) throw error;
     throw new Error('GitHub could not be reached. Check your internet connection or whether this browser blocks the GitHub API.');
   }
 
   notifyRateLimit(response.headers, Boolean(token));
 
   if (!response.ok) {
+    const apiError = (message: string) => Object.assign(new Error(message), { status: response.status });
     if (response.status === 404) {
-      throw new Error('We could not find that project. Check the GitHub link or enter the owner and project name again.');
+      throw apiError('We could not find that project. Check the GitHub link or enter the owner and project name again.');
     }
     if (response.status === 403) {
       const remaining = response.headers.get('x-ratelimit-remaining');
       if (remaining === '0') {
-        throw new Error('GitHub’s public request limit has been reached for this connection. Add a GitHub token to keep checking projects, or wait for the limit to reset.');
+        throw apiError('GitHub’s public request limit has been reached for this connection. Add a GitHub token to keep checking projects, or wait for the limit to reset.');
       }
       const msg = await response.text();
-      throw new Error(`GitHub did not allow this request. ${msg || 'Check that the project is public or that your token has access.'}`);
+      throw apiError(`GitHub did not allow this request. ${msg || 'Check that the project is public or that your token has access.'}`);
     }
     if (response.status === 401) {
-      throw new Error('GitHub could not use your token. It may be expired, incorrect, or missing access to this project.');
+      throw apiError('GitHub could not use your token. It may be expired, incorrect, or missing access to this project.');
     }
-    throw new Error('GitHub could not load this project right now. Please try again in a moment.');
+    throw apiError('GitHub could not load this project right now. Please try again in a moment.');
   }
 
   const data = await response.json();
@@ -172,17 +176,27 @@ async function fetchGitHubApi(endpoint: string, options: RequestInit = {}): Prom
 
 type OfficialContributor = { login: string; avatar_url: string; contributions: number };
 
-async function fetchOfficialContributors(owner: string, repo: string): Promise<OfficialContributor[]> {
+async function fetchOfficialContributors(owner: string, repo: string, forceRefresh = false, signal?: AbortSignal): Promise<OfficialContributor[]> {
   try {
-    const { data } = await fetchGitHubApi(`/repos/${owner}/${repo}/contributors?per_page=100`);
-    if (!Array.isArray(data)) return [];
+    const scope = getTokenCacheScope();
+    const result = await appCache.getOrFetch(
+      `repo_contributors_${scope}_${owner}_${repo}`,
+      async () => {
+        const { data } = await fetchGitHubApi(`/repos/${owner}/${repo}/contributors?per_page=100`, { signal });
+        if (!Array.isArray(data)) return [];
 
-    return data.map((contributor: any) => ({
-      login: contributor.login || 'unknown',
-      avatar_url: contributor.avatar_url || `https://github.com/${contributor.login}.png`,
-      contributions: contributor.contributions || 0,
-    }));
-  } catch {
+        return data.map((contributor: any) => ({
+          login: contributor.login || 'unknown',
+          avatar_url: contributor.avatar_url || `https://github.com/${contributor.login}.png`,
+          contributions: contributor.contributions || 0,
+        }));
+      },
+      15 * 60 * 1000,
+      forceRefresh
+    );
+    return result.data;
+  } catch (error) {
+    if (signal?.aborted) throw error;
     return [];
   }
 }
@@ -194,21 +208,39 @@ async function fetchPullRequestsViaRest(
   filterDate: Date,
   filterEnd: Date | null,
   maxPages: number,
-  onProgress?: (message: string) => void
-): Promise<{ pullRequests: PullRequest[]; maintainerLogins: string[]; totalRepositoryPRs: number }> {
+  onProgress?: (message: string) => void,
+  forceRefresh = false,
+  signal?: AbortSignal
+): Promise<{ pullRequests: PullRequest[]; maintainerLogins: string[]; totalRepositoryPRs: number; isPartial: boolean }> {
   const pullRequests: PullRequest[] = [];
   const maintainerLogins = new Set<string>();
   const isAllTime = filterDate.getTime() === 0;
+  const tokenScope = getTokenCacheScope();
+  let crossedDateBoundary = false;
+  let lastPageWasFull = false;
+  let pageCount = 0;
 
   for (let page = 1; page <= maxPages; page++) {
+    if (signal?.aborted) throw signal.reason;
+    pageCount = page;
     onProgress?.(`Loading contributions (page ${page} of ${maxPages})…`);
-    const { data: rawPulls } = await fetchGitHubApi(
-      `/repos/${owner}/${repo}/pulls?state=all&per_page=100&page=${page}&sort=created&direction=desc`
+    const pageResult = await appCache.getOrFetch(
+      `repo_pr_page_${tokenScope}_${owner}_${repo}_${page}`,
+      async () => {
+        const { data } = await fetchGitHubApi(
+          `/repos/${owner}/${repo}/pulls?state=all&per_page=100&page=${page}&sort=created&direction=desc`,
+          { signal }
+        );
+        return Array.isArray(data) ? data : [];
+      },
+      10 * 60 * 1000,
+      forceRefresh
     );
+    const rawPulls = pageResult.data;
 
     if (!Array.isArray(rawPulls) || rawPulls.length === 0) break;
+    lastPageWasFull = rawPulls.length === 100;
 
-    let crossedDateBoundary = false;
     for (const pr of rawPulls) {
       const createdTime = parseISO(pr.created_at).getTime();
       if (filterEnd && createdTime > filterEnd.getTime()) continue;
@@ -253,6 +285,7 @@ async function fetchPullRequestsViaRest(
     pullRequests,
     maintainerLogins: Array.from(maintainerLogins),
     totalRepositoryPRs: pullRequests.length,
+    isPartial: !crossedDateBoundary && pageCount === maxPages && lastPageWasFull,
   };
 }
 
@@ -262,7 +295,8 @@ export async function fetchRepoStats(
   timeFilter: TimeFilter,
   onProgress?: (message: string) => void,
   forceRefresh = false,
-  dateRange?: DateRange
+  dateRange?: DateRange,
+  signal?: AbortSignal
 ): Promise<RepoStats> {
   if (timeFilter === 'custom' && (!dateRange?.from || !dateRange.to || dateRange.from > dateRange.to)) {
     throw new Error('Choose a valid custom date range with both a start date and an end date.');
@@ -275,19 +309,19 @@ export async function fetchRepoStats(
 
   const { owner, repo } = target;
   const fullName = `${owner}/${repo}`;
-  const rawCacheKey = `repo_raw_${fullName}_${timeFilter}_${dateRange?.from || ''}_${dateRange?.to || ''}`;
+  const token = getActiveToken();
+  const rawCacheKey = `repo_raw_${getTokenCacheScope(token)}_${fullName}_${timeFilter}_${dateRange?.from || ''}_${dateRange?.to || ''}`;
 
   onProgress?.(forceRefresh ? `Force refreshing live data for ${fullName}...` : `Inspecting ${fullName}...`);
   const filterDate = getTimeFilterDate(timeFilter, dateRange);
   const filterEnd = getTimeFilterEnd(timeFilter, dateRange);
-  const token = getActiveToken();
 
   // Step 1: Retrieve or fetch raw repository PRs & maintainers (cached for 10 minutes per timeframe)
   const { data: rawRepoData, isCached, timestamp } = await appCache.getOrFetch(
     rawCacheKey,
     async () => {
     onProgress?.(`Loading activity for ${fullName}…`);
-    const contributorsPromise = fetchOfficialContributors(owner, repo);
+    const contributorsPromise = fetchOfficialContributors(owner, repo, forceRefresh, signal);
     const fallback = () => fetchPullRequestsViaRest(
       owner,
       repo,
@@ -295,11 +329,13 @@ export async function fetchRepoStats(
       filterDate,
       filterEnd,
       token ? (filterDate.getTime() === 0 ? 10 : 20) : (filterDate.getTime() === 0 ? 5 : 10),
-      onProgress
+      onProgress,
+      forceRefresh,
+      signal
     );
 
     const activityPromise = token
-      ? fetchRepoViaGraphQL(owner, repo, filterDate, filterEnd, onProgress).then(async (result) => {
+      ? fetchRepoViaGraphQL(owner, repo, filterDate, filterEnd, onProgress, forceRefresh, signal).then(async (result) => {
           if (!result) return fallback();
           if (result.rateLimit) {
             broadcastRateLimit({ ...result.rateLimit, isAuthenticated: true });
@@ -308,6 +344,7 @@ export async function fetchRepoStats(
             pullRequests: result.pullRequests,
             maintainerLogins: Array.from(result.maintainerLogins),
             totalRepositoryPRs: result.totalRepositoryPRs,
+            isPartial: result.isPartial,
           };
         })
       : fallback();
@@ -318,6 +355,7 @@ export async function fetchRepoStats(
       maintainerLogins: activity.maintainerLogins,
       pullRequests: activity.pullRequests,
       totalRepositoryPRs: activity.totalRepositoryPRs || activity.pullRequests.length,
+      isPartial: activity.isPartial,
       officialContributors,
     };
   });
@@ -431,6 +469,7 @@ export async function fetchRepoStats(
     contributors,
     recentPRs: activePRs,
     metrics,
+    isPartial: rawRepoData.isPartial,
     isCached,
     cachedAt: timestamp,
   };
@@ -444,7 +483,8 @@ export async function fetchDeepFileAnalytics(
   owner: string,
   repo: string,
   pullRequests: PullRequest[],
-  onProgress?: (message: string) => void
+  onProgress?: (message: string) => void,
+  signal?: AbortSignal
 ): Promise<DeepFileAnalytics> {
   const mergedPRs = pullRequests.filter((pr) => Boolean(pr.merged_at));
   const selectedPRs = [...pullRequests]
@@ -457,15 +497,18 @@ export async function fetchDeepFileAnalytics(
   const fileMergeTimes = new Map<string, number[]>();
   const directoryMergeTimes = new Map<string, number[]>();
   const prSizes: DeepFileAnalytics['prSizes'] = [];
+  let failedPRs = 0;
+  let analyzedMergedPRs = 0;
+  const tokenScope = getTokenCacheScope();
 
   for (let index = 0; index < selectedPRs.length; index += 1) {
     const pr = selectedPRs[index];
     onProgress?.(`Reading changed files (${index + 1} of ${selectedPRs.length})…`);
     try {
       const result = await appCache.getOrFetch(
-        `pr_files_${owner}_${repo}_${pr.number}`,
+        `pr_files_${tokenScope}_${owner}_${repo}_${pr.number}`,
         async () => {
-          const { data } = await fetchGitHubApi(`/repos/${owner}/${repo}/pulls/${pr.number}/files?per_page=100`);
+          const { data } = await fetchGitHubApi(`/repos/${owner}/${repo}/pulls/${pr.number}/files?per_page=100`, { signal });
           return Array.isArray(data) ? data.map((file: any) => ({
             path: String(file.filename || 'unknown'),
             additions: Number(file.additions || 0),
@@ -477,6 +520,7 @@ export async function fetchDeepFileAnalytics(
       );
 
       const fileRows = result.data as Array<{ path: string; additions: number; deletions: number; changes: number }>;
+      if (pr.merged_at) analyzedMergedPRs += 1;
       const mergeTimeHours = pr.merged_at ? Math.max(0, differenceInMinutes(parseISO(pr.merged_at), parseISO(pr.created_at)) / 60) : null;
       if (pr.merged_at) {
         prSizes.push({
@@ -554,7 +598,9 @@ export async function fetchDeepFileAnalytics(
         directoryRow.mergeRatePct = directoryRow.totalPRs ? Math.round((directoryRow.mergedPRs / directoryRow.totalPRs) * 100) : 0;
         directoryMap.set(directory, directoryRow);
       }
-    } catch {
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      failedPRs += 1;
       // A single inaccessible PR should not invalidate the rest of the report.
     }
   }
@@ -563,9 +609,10 @@ export async function fetchDeepFileAnalytics(
     files: Array.from(fileMap.values()).sort((a, b) => b.maintainerMergedPRs - a.maintainerMergedPRs || b.mergedPRs - a.mergedPRs || b.changes - a.changes),
     directories: Array.from(directoryMap.values()).sort((a, b) => b.mergedPRs - a.mergedPRs || b.totalPRs - a.totalPRs || b.additions - a.additions),
     prSizes,
-    analyzedMergedPRs: selectedPRs.filter((pr) => Boolean(pr.merged_at)).length,
+    analyzedMergedPRs,
     availableMergedPRs: mergedPRs.length,
-    isPartial: pullRequests.length > selectedPRs.length,
+    failedPRs,
+    isPartial: pullRequests.length > selectedPRs.length || failedPRs > 0,
   };
 }
 
@@ -585,22 +632,25 @@ export async function fetchDeepReviewAnalytics(
   owner: string,
   repo: string,
   pullRequests: PullRequest[],
-  onProgress?: (message: string) => void
+  onProgress?: (message: string) => void,
+  signal?: AbortSignal
 ): Promise<DeepReviewAnalytics> {
   const candidates = [...pullRequests]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 30);
   const rows: DeepReviewAnalytics['rows'] = [];
   const reviewerMap = new Map<string, { reviewedPRs: number; approvals: number }>();
+  let failedPRs = 0;
+  const tokenScope = getTokenCacheScope();
 
   for (let index = 0; index < candidates.length; index += 1) {
     const pr = candidates[index];
     onProgress?.(`Reading review history (${index + 1} of ${candidates.length})…`);
     try {
       const result = await appCache.getOrFetch(
-        `pr_reviews_${owner}_${repo}_${pr.number}`,
+        `pr_reviews_${tokenScope}_${owner}_${repo}_${pr.number}`,
         async () => {
-          const { data } = await fetchGitHubApi(`/repos/${owner}/${repo}/pulls/${pr.number}/reviews?per_page=100`);
+          const { data } = await fetchGitHubApi(`/repos/${owner}/${repo}/pulls/${pr.number}/reviews?per_page=100`, { signal });
           return Array.isArray(data) ? data : [];
         },
         30 * 60 * 1000
@@ -611,15 +661,16 @@ export async function fetchDeepReviewAnalytics(
       let commentCount = 0;
       try {
         const commentResult = await appCache.getOrFetch(
-          `pr_review_comments_${owner}_${repo}_${pr.number}`,
+          `pr_review_comments_${tokenScope}_${owner}_${repo}_${pr.number}`,
           async () => {
-            const { data } = await fetchGitHubApi(`/repos/${owner}/${repo}/pulls/${pr.number}/comments?per_page=100`);
+            const { data } = await fetchGitHubApi(`/repos/${owner}/${repo}/pulls/${pr.number}/comments?per_page=100`, { signal });
             return Array.isArray(data) ? data.length : 0;
           },
           30 * 60 * 1000
         );
         commentCount = Number(commentResult.data || 0);
-      } catch {
+      } catch (error) {
+        if (signal?.aborted) throw error;
         commentCount = 0;
       }
       const firstReview = reviews[0];
@@ -646,7 +697,9 @@ export async function fetchDeepReviewAnalytics(
         current.approvals += reviews.filter((review) => review.user?.login === reviewer && review.state === 'APPROVED').length;
         reviewerMap.set(reviewer as string, current);
       }
-    } catch {
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      failedPRs += 1;
       // Keep partial report availability when an individual PR cannot be read.
     }
   }
@@ -663,7 +716,8 @@ export async function fetchDeepReviewAnalytics(
     rows,
     scannedPRs: candidates.length,
     availablePRs: pullRequests.length,
-    isPartial: pullRequests.length > candidates.length,
+    failedPRs,
+    isPartial: pullRequests.length > candidates.length || failedPRs > 0,
     funnel: {
       opened: candidates.length,
       reviewed: reviewedPRs,
@@ -786,14 +840,15 @@ function normalizeOwnerInput(rawInput: string): string {
 /** Fetch a low-cost organization/user overview. Full PR scans remain opt-in. */
 export async function fetchOrganizationOverview(
   rawInput: string,
-  forceRefresh = false
+  forceRefresh = false,
+  signal?: AbortSignal
 ): Promise<OrganizationStats> {
   const login = normalizeOwnerInput(rawInput);
   if (!/^[A-Za-z0-9_.-]+$/.test(login)) {
     throw new Error('Enter a GitHub organization or username, such as microsoft or octocat.');
   }
 
-  const cacheKey = `owner_overview_${login.toLowerCase()}`;
+  const cacheKey = `owner_overview_${getTokenCacheScope()}_${login.toLowerCase()}`;
   const result = await appCache.getOrFetch(
     cacheKey,
     async () => {
@@ -801,13 +856,21 @@ export async function fetchOrganizationOverview(
       let rawRepos: any[] = [];
 
       try {
-        const response = await fetchGitHubApi(`/orgs/${encodeURIComponent(login)}/repos?per_page=100&sort=stars&direction=desc&type=all`);
+        const response = await fetchGitHubApi(`/orgs/${encodeURIComponent(login)}/repos?per_page=100&sort=stars&direction=desc&type=all`, { signal });
         rawRepos = Array.isArray(response.data) ? response.data : [];
-        ownerData = await fetchGitHubApi(`/orgs/${encodeURIComponent(login)}`).then((r) => r.data).catch(() => null);
-      } catch {
-        const response = await fetchGitHubApi(`/users/${encodeURIComponent(login)}/repos?per_page=100&sort=stars&direction=desc&type=owner`);
+        ownerData = await fetchGitHubApi(`/orgs/${encodeURIComponent(login)}`, { signal }).then((r) => r.data).catch((error) => {
+          if (signal?.aborted) throw error;
+          return null;
+        });
+      } catch (error) {
+        if (signal?.aborted) throw signal.reason;
+        if ((error as { status?: number })?.status !== 404) throw error;
+        const response = await fetchGitHubApi(`/users/${encodeURIComponent(login)}/repos?per_page=100&sort=stars&direction=desc&type=owner`, { signal });
         rawRepos = Array.isArray(response.data) ? response.data : [];
-        ownerData = await fetchGitHubApi(`/users/${encodeURIComponent(login)}`).then((r) => r.data).catch(() => null);
+        ownerData = await fetchGitHubApi(`/users/${encodeURIComponent(login)}`, { signal }).then((r) => r.data).catch((error) => {
+          if (signal?.aborted) throw error;
+          return null;
+        });
       }
 
       const repositories: RepositorySummary[] = rawRepos

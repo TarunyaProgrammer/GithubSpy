@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from './request';
+
 const TOKEN_STORAGE_KEY = 'githubspy_pat';
 
 /**
@@ -7,11 +9,7 @@ export function sanitizeToken(raw: string): string {
   return raw.trim().replace(/^["']|["']$/g, '');
 }
 
-/**
- * Get active token:
- * 1. User's personal token from localStorage (highest priority)
- * 2. Pre-configured environment token (VITE_GITHUB_TOKEN) if provided
- */
+/** Personal tokens stay in this browser and are sent directly to GitHub. */
 export function getActiveToken(): string | null {
   try {
     const localToken = localStorage.getItem(TOKEN_STORAGE_KEY);
@@ -23,13 +21,16 @@ export function getActiveToken(): string | null {
     // Non-blocking fallback if storage is restricted
   }
 
-  const envToken = import.meta.env.VITE_GITHUB_TOKEN;
-  if (envToken && typeof envToken === 'string') {
-    const cleaned = sanitizeToken(envToken);
-    if (cleaned.length > 0) return cleaned;
-  }
-
   return null;
+}
+
+export function getTokenCacheScope(token = getActiveToken()): string {
+  if (!token) return 'public';
+  let hash = 2166136261;
+  for (let index = 0; index < token.length; index += 1) {
+    hash = Math.imul(hash ^ token.charCodeAt(index), 16777619);
+  }
+  return `token-${(hash >>> 0).toString(36)}`;
 }
 
 export function hasPersonalToken(): boolean {
@@ -41,12 +42,14 @@ export function hasPersonalToken(): boolean {
   }
 }
 
-export function savePersonalToken(token: string): void {
+export function savePersonalToken(token: string): boolean {
   try {
     const cleaned = sanitizeToken(token);
+    if (!cleaned) return false;
     localStorage.setItem(TOKEN_STORAGE_KEY, cleaned);
+    return localStorage.getItem(TOKEN_STORAGE_KEY) === cleaned;
   } catch {
-    // Non-blocking fallback if storage is full or disabled
+    return false;
   }
 }
 
@@ -90,7 +93,7 @@ export async function testTokenValidity(token: string): Promise<{ valid: boolean
   }
 
   try {
-    const response = await fetch('https://api.github.com/user', {
+    const response = await fetchWithTimeout('https://api.github.com/user', {
       headers: {
         Authorization: `Bearer ${cleaned}`,
         'X-GitHub-Api-Version': '2022-11-28',

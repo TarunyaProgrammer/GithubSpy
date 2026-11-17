@@ -101,7 +101,7 @@ export const Header: React.FC<HeaderProps> = ({
               aria-label={
                 hasPersonalToken
                   ? 'Token connected — manage GitHub personal access token'
-                  : 'Add GitHub token — unlock 5,000 requests per hour'
+                  : 'Add GitHub token — raise the core API limit'
               }
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer ${
                 hasPersonalToken

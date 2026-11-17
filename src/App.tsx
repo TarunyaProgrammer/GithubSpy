@@ -46,6 +46,18 @@ export function App() {
   const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
   const [tokenActive, setTokenActive] = useState(hasPersonalToken());
   const openDeepAfterLoad = useRef(false);
+  const requestId = useRef(0);
+  const activeRequest = useRef<AbortController | null>(null);
+
+  const startRequest = useCallback(() => {
+    activeRequest.current?.abort();
+    const controller = new AbortController();
+    const id = ++requestId.current;
+    activeRequest.current = controller;
+    return { id, controller };
+  }, []);
+
+  const isCurrentRequest = useCallback((id: number) => id === requestId.current, []);
 
   // Ensure clean root classes (no dark mode class)
   useEffect(() => {
@@ -68,6 +80,7 @@ export function App() {
   const handleSearch = useCallback(
     async (repoQuery: string, filter: TimeFilter, nextDateRange?: DateRange, forceRefresh = false) => {
       if (!repoQuery.trim()) return;
+      const { id, controller } = startRequest();
 
       const parsed = parseGitHubUrl(repoQuery);
       const cleanName = parsed ? `${parsed.owner}/${parsed.repo}` : repoQuery.trim();
@@ -75,11 +88,8 @@ export function App() {
       setTimeFilter(filter);
       if (nextDateRange) setDateRange(nextDateRange);
 
-      if (forceRefresh) {
-        setIsRefreshing(true);
-      } else {
-        setLoading(true);
-      }
+      setLoading(!forceRefresh);
+      setIsRefreshing(forceRefresh);
 
       setError(null);
       setLoadingProgress(forceRefresh ? 'Getting the latest activity from GitHub…' : 'Connecting to GitHub…');
@@ -87,7 +97,8 @@ export function App() {
       try {
         if (!parsed) {
           setLoadingProgress('Loading the organization repository map…');
-          const ownerResult = await fetchOrganizationOverview(repoQuery, forceRefresh);
+          const ownerResult = await fetchOrganizationOverview(repoQuery, forceRefresh, controller.signal);
+          if (!isCurrentRequest(id) || controller.signal.aborted) return;
           setOrganization(ownerResult);
           setStats(null);
           setComparisonStats(null);
@@ -99,11 +110,13 @@ export function App() {
           repoQuery,
           filter,
           (msg) => {
-            setLoadingProgress(msg);
+            if (isCurrentRequest(id)) setLoadingProgress(msg);
           },
           forceRefresh,
-          nextDateRange
+          nextDateRange,
+          controller.signal
         );
+        if (!isCurrentRequest(id) || controller.signal.aborted) return;
         setStats(result);
         setOrganization(null);
         setComparisonStats(null);
@@ -114,15 +127,18 @@ export function App() {
         addRecentRepo(result.fullName);
         setLoadingProgress('');
       } catch (err) {
+        if (controller.signal.aborted || !isCurrentRequest(id)) return;
         setError(err instanceof Error ? err.message : 'We could not check this project. Try the link again.');
-        if (!forceRefresh) setStats(null);
       } finally {
-        setLoading(false);
-        setIsRefreshing(false);
-        setLoadingProgress('');
+        if (isCurrentRequest(id)) {
+          setLoading(false);
+          setIsRefreshing(false);
+          setLoadingProgress('');
+          if (activeRequest.current === controller) activeRequest.current = null;
+        }
       }
     },
-    []
+    [isCurrentRequest, startRequest]
   );
 
   const handleOpenRepository = useCallback((fullName: string) => {
@@ -138,27 +154,41 @@ export function App() {
 
   const handleCompareRepositories = useCallback(async (fullNames: string[]) => {
     if (fullNames.length < 2) return;
+    const { id, controller } = startRequest();
     setLoading(true);
+    setIsRefreshing(false);
     setError(null);
     setLoadingProgress(`Comparing ${fullNames.length} repositories…`);
     try {
       const results: RepoStats[] = [];
       for (let index = 0; index < fullNames.length; index += 1) {
         setLoadingProgress(`Comparing repository ${index + 1} of ${fullNames.length}…`);
-        results.push(await fetchRepoStats(fullNames[index], timeFilter, (message) => setLoadingProgress(message), false, dateRange));
+        results.push(await fetchRepoStats(
+          fullNames[index],
+          timeFilter,
+          (message) => { if (isCurrentRequest(id)) setLoadingProgress(message); },
+          false,
+          dateRange,
+          controller.signal
+        ));
       }
+      if (!isCurrentRequest(id) || controller.signal.aborted) return;
       setComparisonStats(results);
       setOrganization(null);
       setStats(null);
       setView('comparison');
       window.history.replaceState({}, '', `#compare/${results.map((result) => result.fullName).join(',')}`);
     } catch (err) {
+      if (controller.signal.aborted || !isCurrentRequest(id)) return;
       setError(err instanceof Error ? err.message : 'Repository comparison could not be completed.');
     } finally {
-      setLoading(false);
-      setLoadingProgress('');
+      if (isCurrentRequest(id)) {
+        setLoading(false);
+        setLoadingProgress('');
+        if (activeRequest.current === controller) activeRequest.current = null;
+      }
     }
-  }, [dateRange, timeFilter]);
+  }, [dateRange, isCurrentRequest, startRequest, timeFilter]);
 
   useEffect(() => {
     const loadFromHash = () => {
@@ -217,6 +247,12 @@ export function App() {
         onOpenTokenModal={() => setIsTokenModalOpen(true)}
         view={view}
         onNavigateHome={() => {
+          activeRequest.current?.abort();
+          activeRequest.current = null;
+          requestId.current += 1;
+          setLoading(false);
+          setIsRefreshing(false);
+          setLoadingProgress('');
           setView('home');
           setStats(null);
           setOrganization(null);
@@ -349,6 +385,7 @@ export function App() {
               fullName={stats.fullName}
               isCached={stats.isCached}
               cachedAt={stats.cachedAt}
+              isPartial={stats.isPartial}
               onRefresh={() => handleSearch(stats.fullName, timeFilter, dateRange, true)}
               isRefreshing={isRefreshing}
             />

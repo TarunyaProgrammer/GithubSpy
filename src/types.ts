@@ -144,6 +144,7 @@ export interface DeepFileAnalytics {
   prSizes: Array<{ prNumber: number; filesChanged: number; additions: number; deletions: number; changes: number; mergedAt: string | null; mergeTimeHours: number | null }>;
   analyzedMergedPRs: number;
   availableMergedPRs: number;
+  failedPRs: number;
   isPartial: boolean;
 }
 
@@ -165,6 +166,7 @@ export interface DeepReviewAnalytics {
   rows: ReviewResponseRow[];
   scannedPRs: number;
   availablePRs: number;
+  failedPRs: number;
   isPartial: boolean;
   funnel: {
     opened: number;
@@ -202,6 +204,7 @@ export interface RepoStats {
   contributors: ContributorStats[];
   recentPRs: PullRequest[];
   metrics: RepoMetrics;
+  isPartial?: boolean;
   isCached?: boolean;
   cachedAt?: number;
 }

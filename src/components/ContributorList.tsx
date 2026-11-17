@@ -8,6 +8,7 @@ interface ContributorListProps {
 }
 
 type SortBy = 'total' | 'merged' | 'open' | 'commits';
+const MAX_VISIBLE_CONTRIBUTORS = 150;
 
 export const ContributorList: React.FC<ContributorListProps> = ({ contributors, onSelectUser }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,6 +54,7 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
 
   const maintainerCount = useMemo(() => contributors.filter((c) => c.isMaintainer).length, [contributors]);
   const contributorOnlyCount = contributors.length - maintainerCount;
+  const visibleContributors = filteredContributors.slice(0, MAX_VISIBLE_CONTRIBUTORS);
 
   return (
     <div className="w-full my-4 sm:my-6 bg-white rounded-3xl border border-[#E5E0D8] p-4 sm:p-6 shadow-xs">
@@ -152,7 +154,7 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 pt-4" role="list">
-          {filteredContributors.map((c) => (
+          {visibleContributors.map((c) => (
             <div
               key={c.username}
               role="button"
@@ -250,6 +252,7 @@ export const ContributorList: React.FC<ContributorListProps> = ({ contributors, 
           ))}
         </div>
       )}
+      {filteredContributors.length > MAX_VISIBLE_CONTRIBUTORS && <p className="pt-4 text-center text-xs text-[#787571]">Showing the first {MAX_VISIBLE_CONTRIBUTORS} people. Search by username to narrow the list.</p>}
     </div>
   );
 };

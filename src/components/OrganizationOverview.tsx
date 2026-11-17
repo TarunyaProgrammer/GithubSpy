@@ -50,8 +50,8 @@ export const OrganizationOverview: React.FC<OrganizationOverviewProps> = ({ stat
 
         <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-[#E5E0D8] border-t border-[#E5E0D8] pt-4">
           <Summary label="Repositories shown" value={stats.repositories.length} />
-          <Summary label="Stars across owner" value={stats.totalStars} />
-          <Summary label="Open issues" value={stats.totalOpenIssues} />
+          <Summary label="Stars in top 100 repos" value={stats.totalStars} />
+          <Summary label="Open issues in top 100" value={stats.totalOpenIssues} />
           <Summary label="Data strategy" value="Cached" />
         </div>
       </div>

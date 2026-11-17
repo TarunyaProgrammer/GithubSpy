@@ -67,13 +67,16 @@ export const TokenModal: React.FC<TokenModalProps> = ({
     setIsTesting(false);
 
     if (check.valid) {
-      savePersonalToken(clean);
+      if (!savePersonalToken(clean)) {
+        setFeedback({ type: 'error', message: 'The token was verified, but this browser could not save it. Enable local storage or clear browser storage, then try again.' });
+        return;
+      }
       setIsSaved(true);
       setIsEditing(false);
       setTokenInput('');
       setFeedback({
         type: 'success',
-        message: `Connected as @${check.username}. You can now make up to 5,000 GitHub requests per hour.`,
+        message: `Connected as @${check.username}. GitHub limits vary by API endpoint; the active quota is shown above.`,
       });
       onTokenChanged();
     } else {
@@ -118,7 +121,7 @@ export const TokenModal: React.FC<TokenModalProps> = ({
               <p className="text-xs text-[#787571] font-sans">
                 {isSaved
                   ? 'Your personal access token is active and stored in your browser.'
-                  : 'Optional: this raises your GitHub request limit from 60 to 5,000 checks per hour.'}
+                  : 'Optional: a token raises GitHub’s core API limit. Exact limits vary by endpoint.'}
               </p>
             </div>
           </div>
@@ -138,11 +141,11 @@ export const TokenModal: React.FC<TokenModalProps> = ({
             {isSaved ? (
               <span className="text-emerald-700 font-semibold flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                5,000 checks per hour
+                {limit.toLocaleString()} requests per hour
               </span>
             ) : (
               <span className="text-[#524E48] font-medium">
-                Public access (60 checks per hour)
+                Public access (60 requests per hour)
               </span>
             )}
           </div>
@@ -250,12 +253,12 @@ export const TokenModal: React.FC<TokenModalProps> = ({
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1">
               <a
-                href="https://github.com/settings/tokens/new?description=GithubSpy&scopes=public_repo"
+                href="https://github.com/settings/personal-access-tokens/new"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-[#9E6212] hover:underline flex items-center gap-1 font-mono justify-center sm:justify-start py-1"
               >
-                <span>Create a token on GitHub</span>
+                <span>Create a fine-grained token</span>
                 <ExternalLink className="w-3 h-3" />
               </a>
 
@@ -279,6 +282,7 @@ export const TokenModal: React.FC<TokenModalProps> = ({
               <strong>Stored only in this browser:</strong> Your token is saved locally and is sent directly to GitHub when you check a project. It is never sent to a GitHub Spy server.
             </span>
           </p>
+          <p>Grant read-only access to repository metadata and pull requests for the public repositories you want to analyze.</p>
         </div>
       </div>
     </div>
