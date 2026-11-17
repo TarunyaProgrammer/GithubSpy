@@ -104,7 +104,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
 
   return (
     <section className="w-full pt-6 sm:pt-8 pb-3 sm:pb-4" aria-label="Repository search and filters">
-      <div className="max-w-3xl mx-auto text-center space-y-3 sm:space-y-4">
+      <div className="max-w-3xl mx-auto text-center space-y-3 sm:space-y-4" aria-busy={loading}>
         <div className="px-2">
           <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl font-display font-bold tracking-tight leading-tight">
             <span className="text-[#161514]">Find a project where you can</span>{' '}
@@ -209,6 +209,8 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
               {TIME_FILTERS.map((f) => (
                 <button
                   key={f.value}
+                  type="button"
+                  aria-pressed={timeFilter === f.value}
                   onClick={() => {
                     onTimeFilterChange(f.value);
                     if (inputVal.trim() && (f.value !== 'custom' || (dateRange.from && dateRange.to))) {
@@ -318,6 +320,7 @@ export const SearchSection: React.FC<SearchSectionProps> = ({
           <div
             className="pt-2 flex items-center justify-center gap-2 text-xs font-mono text-[#9E6212] animate-pulse"
             aria-live="polite"
+            role="status"
           >
             <Loader2 className="w-3.5 h-3.5 animate-spin flex-shrink-0 text-[#EAA036]" />
             <span className="truncate max-w-xs sm:max-w-md">{loadingProgress.replace('Interrogating', 'Checking').replace('Executing single-request GraphQL accelerator', 'Loading project data').replace('Accessing official contributor roster', 'Finding active contributors')}</span>

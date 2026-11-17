@@ -1,4 +1,5 @@
 import type { AIRepositoryAnalysis } from '../types';
+import { fetchWithTimeout } from './request';
 
 export type AIProvider = 'gemini' | 'openrouter';
 
@@ -71,21 +72,21 @@ function buildPrompt(input: unknown): string {
 }
 
 async function callGemini(prompt: string, config: AIConfig): Promise<string> {
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.model)}:generateContent`, {
+  const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.model)}:generateContent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': config.apiKey.trim() },
     body: JSON.stringify({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: { responseMimeType: 'application/json', responseSchema: ANALYSIS_SCHEMA },
     }),
-  });
+  }, 60_000);
   if (!response.ok) throw new Error(`Gemini could not analyze this report (${response.status}). Check the key and model name.`);
   const payload = await response.json();
   return payload.candidates?.[0]?.content?.parts?.map((part: any) => part.text || '').join('') || '';
 }
 
 async function callOpenRouter(prompt: string, config: AIConfig): Promise<string> {
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const response = await fetchWithTimeout('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -98,7 +99,7 @@ async function callOpenRouter(prompt: string, config: AIConfig): Promise<string>
       messages: [{ role: 'user', content: prompt }],
       response_format: { type: 'json_object' },
     }),
-  });
+  }, 60_000);
   if (!response.ok) throw new Error(`OpenRouter could not analyze this report (${response.status}). Check the key and model name.`);
   const payload = await response.json();
   return payload.choices?.[0]?.message?.content || '';

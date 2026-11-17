@@ -6,6 +6,7 @@ interface CacheEntry<T> {
 
 const STORAGE_PREFIX = 'githubspy_cache_';
 const MAX_LOCAL_STORAGE_ITEMS = 30;
+const MAX_PERSISTED_ENTRY_CHARS = 750_000;
 
 /**
  * High-performance hybrid LRU & persistent LocalStorage Cache with TTL.
@@ -15,6 +16,7 @@ class RequestCache {
   private memoryCache = new Map<string, CacheEntry<unknown>>();
   private inFlight = new Map<string, Promise<unknown>>();
   private readonly maxEntries: number;
+  private generation = 0;
 
   constructor(maxEntries = 100) {
     this.maxEntries = maxEntries;
@@ -28,21 +30,51 @@ class RequestCache {
   private cleanupExpiredPersistentEntries(): void {
     try {
       const now = Date.now();
-      const keysToRemove: string[] = [];
+      const entries: Array<{ key: string; timestamp: number }> = [];
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
         if (k && k.startsWith(STORAGE_PREFIX)) {
           try {
             const item = JSON.parse(localStorage.getItem(k) || '');
             if (!item || now - item.timestamp > item.ttl) {
-              keysToRemove.push(k);
+              localStorage.removeItem(k);
+            } else {
+              entries.push({ key: k, timestamp: Number(item.timestamp) || 0 });
             }
           } catch {
-            keysToRemove.push(k);
+            localStorage.removeItem(k);
           }
         }
       }
-      keysToRemove.forEach((k) => localStorage.removeItem(k));
+      entries.sort((a, b) => a.timestamp - b.timestamp);
+      while (entries.length > MAX_LOCAL_STORAGE_ITEMS) {
+        const oldest = entries.shift();
+        if (oldest) localStorage.removeItem(oldest.key);
+      }
+    } catch {
+      // Non-blocking storage fallback
+    }
+  }
+
+  private makePersistentRoom(storageKey: string): void {
+    this.cleanupExpiredPersistentEntries();
+    try {
+      if (localStorage.getItem(storageKey)) return;
+      const keys: string[] = [];
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (key?.startsWith(STORAGE_PREFIX)) keys.push(key);
+      }
+      if (keys.length < MAX_LOCAL_STORAGE_ITEMS) return;
+      keys.sort((a, b) => {
+        const readTimestamp = (key: string) => {
+          try { return Number(JSON.parse(localStorage.getItem(key) || '{}').timestamp) || 0; }
+          catch { return 0; }
+        };
+        return readTimestamp(a) - readTimestamp(b);
+      });
+      const oldest = keys.find((key) => key !== storageKey);
+      if (oldest) localStorage.removeItem(oldest);
     } catch {
       // Non-blocking storage fallback
     }
@@ -96,12 +128,23 @@ class RequestCache {
 
     // 2. Persist to localStorage
     try {
-      localStorage.setItem(this.getStorageKey(key), JSON.stringify(entry));
+      const storageKey = this.getStorageKey(key);
+      const serialized = JSON.stringify(entry);
+      if (serialized.length > MAX_PERSISTED_ENTRY_CHARS) {
+        localStorage.removeItem(storageKey);
+        return;
+      }
+      this.makePersistentRoom(storageKey);
+      localStorage.setItem(storageKey, serialized);
     } catch {
       // If storage quota exceeded, prune older items and retry
       this.cleanupExpiredPersistentEntries();
       try {
-        localStorage.setItem(this.getStorageKey(key), JSON.stringify(entry));
+        const serialized = JSON.stringify(entry);
+        if (serialized.length <= MAX_PERSISTED_ENTRY_CHARS) {
+          this.makePersistentRoom(this.getStorageKey(key));
+          localStorage.setItem(this.getStorageKey(key), serialized);
+        }
       } catch {
         // Silent fallback to memory-only
       }
@@ -117,6 +160,7 @@ class RequestCache {
     ttlMs = 10 * 60 * 1000,
     forceRefresh = false
   ): Promise<{ data: T; isCached: boolean; timestamp: number }> {
+    const generation = this.generation;
     if (!forceRefresh) {
       const cached = this.get<T>(key);
       if (cached !== null) {
@@ -124,18 +168,25 @@ class RequestCache {
       }
     }
 
-    if (this.inFlight.has(key)) {
-      const result = await (this.inFlight.get(key) as Promise<T>);
-      return { data: result, isCached: false, timestamp: Date.now() };
+    const existing = this.inFlight.get(key) as Promise<T> | undefined;
+    if (existing) {
+      try {
+        const result = await existing;
+        return { data: result, isCached: false, timestamp: Date.now() };
+      } catch {
+        // A caller may have cancelled the shared request. Let this caller retry it.
+        if (this.inFlight.get(key) === existing) this.inFlight.delete(key);
+      }
     }
 
-    const promise = fetcher()
+    let promise: Promise<T>;
+    promise = fetcher()
       .then((result) => {
-        this.set(key, result, ttlMs);
+        if (generation === this.generation) this.set(key, result, ttlMs);
         return result;
       })
       .finally(() => {
-        this.inFlight.delete(key);
+        if (this.inFlight.get(key) === promise) this.inFlight.delete(key);
       });
 
     this.inFlight.set(key, promise);
@@ -153,6 +204,7 @@ class RequestCache {
   }
 
   clear(): void {
+    this.generation += 1;
     this.memoryCache.clear();
     this.inFlight.clear();
     try {

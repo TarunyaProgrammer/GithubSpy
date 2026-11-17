@@ -48,7 +48,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com; font-src 'self' https://api.fontshare.com https://cdn.fontshare.com https://fonts.gstatic.com; img-src 'self' data: https://avatars.githubusercontent.com https://github.com https://*.githubusercontent.com; connect-src 'self' https://api.github.com https://formsubmit.co; object-src 'none'; base-uri 'self'; form-action 'self' https://formsubmit.co; frame-ancestors 'none';"
+          "value": "default-src 'self'; script-src 'self' https://cloud.umami.is; style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com; font-src 'self' https://api.fontshare.com https://cdn.fontshare.com https://fonts.gstatic.com; img-src 'self' data: https://avatars.githubusercontent.com https://github.com https://*.githubusercontent.com; connect-src 'self' https://api.github.com https://formsubmit.co https://cloud.umami.is https://generativelanguage.googleapis.com https://openrouter.ai; object-src 'none'; base-uri 'self'; form-action 'self' https://formsubmit.co; frame-ancestors 'none';"
         }
       ]
     },
@@ -62,7 +62,7 @@
       ]
     },
     {
-      "source": "/(favicon.svg|robots.txt|sitemap.xml|og-image.png|llms.txt|llms-full.txt)",
+      "source": "/(favicon.svg|robots.txt|sitemap.xml|og-image.jpg|llms.txt|llms-full.txt)",
       "headers": [
         {
           "key": "Cache-Control",

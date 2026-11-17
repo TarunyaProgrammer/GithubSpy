@@ -157,7 +157,7 @@ export const RateLimitPopover: React.FC<RateLimitPopoverProps> = ({
             <div className="p-3 rounded-xl bg-[#EAA036]/10 border border-[#EAA036]/30 mb-3">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-[#9E6212] mb-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-[#EAA036]" />
-                <span>Up to 5,000 checks per hour</span>
+                <span>Authenticated limits vary by API endpoint</span>
               </div>
               <p className="text-[11px] text-[#524E48] leading-normal">
                 Add a free GitHub personal access token to use your own GitHub limit instead of the shared public limit.

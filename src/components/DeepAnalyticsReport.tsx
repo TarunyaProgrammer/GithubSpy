@@ -33,10 +33,12 @@ export const DeepAnalyticsReport: React.FC<DeepAnalyticsReportProps> = ({ stats,
   const [fileLoading, setFileLoading] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
   const [fileProgress, setFileProgress] = useState('');
+  const [fileRetry, setFileRetry] = useState(0);
   const [reviewAnalytics, setReviewAnalytics] = useState<import('../types').DeepReviewAnalytics | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [reviewProgress, setReviewProgress] = useState('');
+  const [reviewRetry, setReviewRetry] = useState(0);
 
   const labels = useMemo(() => Array.from(new Set(stats.recentPRs.flatMap((pr) => pr.labels || []))).sort((a, b) => a.localeCompare(b)), [stats.recentPRs]);
   const reviewers = reviewAnalytics?.topReviewers.map((reviewer) => reviewer.username) || [];
@@ -50,22 +52,26 @@ export const DeepAnalyticsReport: React.FC<DeepAnalyticsReportProps> = ({ stats,
   const summary = useMemo(() => buildDeepAnalyticsSummary(filteredPRs), [filteredPRs]);
 
   useEffect(() => {
-    if (!hasPersonalToken || fileAnalytics || fileLoading) return;
+    if (!hasPersonalToken || fileAnalytics || fileError) return;
+    const controller = new AbortController();
     setFileLoading(true);
-    fetchDeepFileAnalytics(stats.owner, stats.repo, stats.recentPRs, setFileProgress)
+    fetchDeepFileAnalytics(stats.owner, stats.repo, stats.recentPRs, setFileProgress, controller.signal)
       .then(setFileAnalytics)
-      .catch((error) => setFileError(error instanceof Error ? error.message : 'Changed-file analysis could not be loaded.'))
-      .finally(() => setFileLoading(false));
-  }, [fileAnalytics, fileLoading, hasPersonalToken, stats.owner, stats.repo, stats.recentPRs]);
+      .catch((error) => { if (!controller.signal.aborted) setFileError(error instanceof Error ? error.message : 'Changed-file analysis could not be loaded.'); })
+      .finally(() => { if (!controller.signal.aborted) setFileLoading(false); });
+    return () => controller.abort();
+  }, [fileAnalytics, fileError, fileRetry, hasPersonalToken, stats.owner, stats.repo, stats.recentPRs]);
 
   useEffect(() => {
-    if (!hasPersonalToken || reviewAnalytics || reviewLoading) return;
+    if (!hasPersonalToken || reviewAnalytics || reviewError) return;
+    const controller = new AbortController();
     setReviewLoading(true);
-    fetchDeepReviewAnalytics(stats.owner, stats.repo, stats.recentPRs, setReviewProgress)
+    fetchDeepReviewAnalytics(stats.owner, stats.repo, stats.recentPRs, setReviewProgress, controller.signal)
       .then(setReviewAnalytics)
-      .catch((error) => setReviewError(error instanceof Error ? error.message : 'Review analytics could not be loaded.'))
-      .finally(() => setReviewLoading(false));
-  }, [hasPersonalToken, reviewAnalytics, reviewLoading, stats.owner, stats.repo, stats.recentPRs]);
+      .catch((error) => { if (!controller.signal.aborted) setReviewError(error instanceof Error ? error.message : 'Review analytics could not be loaded.'); })
+      .finally(() => { if (!controller.signal.aborted) setReviewLoading(false); });
+    return () => controller.abort();
+  }, [hasPersonalToken, reviewAnalytics, reviewError, reviewRetry, stats.owner, stats.repo, stats.recentPRs]);
 
   const evidence = useMemo(() => buildAIInput(filteredPRs, summary, fileAnalytics?.files || [], fileAnalytics?.directories || [], reviewAnalytics), [filteredPRs, summary, fileAnalytics, reviewAnalytics]);
 
@@ -82,7 +88,7 @@ export const DeepAnalyticsReport: React.FC<DeepAnalyticsReportProps> = ({ stats,
           </div>
           <div className="rounded-2xl border border-[#EAA036]/35 bg-[#FFF9EF] px-3 py-2 text-right"><p className="text-[10px] font-medium uppercase tracking-wide text-[#9E6212]">Analysis window</p><p className="mt-1 text-xs font-semibold text-[#161514]">{scopeLabel}</p><p className="mt-1 text-[10px] text-[#787571]">{summary.totalPRs.toLocaleString()} PRs in evidence</p></div>
         </div>
-        <div className="mt-5 flex flex-wrap gap-2 text-[10px] font-mono text-[#787571]"><span className="rounded-full bg-[#EFECE6] px-2.5 py-1">All metrics below use this window</span><span className="rounded-full bg-[#EFECE6] px-2.5 py-1">Cached GitHub evidence: {stats.isCached ? 'yes' : 'no'}</span>{stats.metrics.totalRepositoryPRs && stats.metrics.totalRepositoryPRs > stats.recentPRs.length && <span className="rounded-full bg-[#FFF9EF] px-2.5 py-1 text-[#9E6212]">Repository total exceeds fetched window</span>}{filteredPRs.length !== stats.recentPRs.length && <span className="rounded-full bg-[#FFF9EF] px-2.5 py-1 text-[#9E6212]">Filters narrowed evidence to {filteredPRs.length} PRs</span>}</div>
+        <div className="mt-5 flex flex-wrap gap-2 text-[10px] font-mono text-[#787571]"><span className="rounded-full bg-[#EFECE6] px-2.5 py-1">All metrics below use this window</span><span className="rounded-full bg-[#EFECE6] px-2.5 py-1">Cached GitHub evidence: {stats.isCached ? 'yes' : 'no'}</span>{stats.isPartial && <span className="rounded-full bg-[#FFF9EF] px-2.5 py-1 text-[#9E6212]">Pull request scan is partial</span>}{filteredPRs.length !== stats.recentPRs.length && <span className="rounded-full bg-[#FFF9EF] px-2.5 py-1 text-[#9E6212]">Filters narrowed evidence to {filteredPRs.length} PRs</span>}</div>
         <EvidenceFilters roleFilter={roleFilter} labelFilter={labelFilter} reviewerFilter={reviewerFilter} labels={labels} reviewers={reviewers} onRoleChange={setRoleFilter} onLabelChange={setLabelFilter} onReviewerChange={setReviewerFilter} onClear={() => { setRoleFilter('all'); setLabelFilter('all'); setReviewerFilter('all'); }} filteredCount={filteredPRs.length} totalCount={stats.recentPRs.length} />
       </header>
 
@@ -107,19 +113,19 @@ export const DeepAnalyticsReport: React.FC<DeepAnalyticsReportProps> = ({ stats,
 
       <ContributorConversionCard conversion={summary.contributorConversion} />
 
-      <ChangedFilesSection analytics={fileAnalytics} loading={fileLoading} progress={fileProgress} error={fileError} hasPersonalToken={hasPersonalToken} onOpenTokenModal={onOpenTokenModal} />
+      <ChangedFilesSection analytics={fileAnalytics} loading={fileLoading} progress={fileProgress} error={fileError} hasPersonalToken={hasPersonalToken} onOpenTokenModal={onOpenTokenModal} onRetry={() => { setFileError(null); setFileRetry((count) => count + 1); }} />
 
       <DirectoryFocusSection analytics={fileAnalytics} scopeLabel={scopeLabel} />
 
-      <DeepAnalyticsCharts summary={summary} fileAnalytics={fileAnalytics} reviewAnalytics={reviewAnalytics} reviewLoading={reviewLoading} reviewProgress={reviewProgress} reviewError={reviewError} />
+      <DeepAnalyticsCharts summary={summary} fileAnalytics={fileAnalytics} reviewAnalytics={reviewAnalytics} reviewLoading={reviewLoading} reviewProgress={reviewProgress} reviewError={reviewError} onRetryReviews={() => { setReviewError(null); setReviewRetry((count) => count + 1); }} />
 
       <AIInsightsPanel evidence={evidence} />
     </section>
   );
 };
 
-function ChangedFilesSection({ analytics, loading, progress, error, hasPersonalToken, onOpenTokenModal }: { analytics: DeepFileAnalytics | null; loading: boolean; progress: string; error: string | null; hasPersonalToken: boolean; onOpenTokenModal: () => void }) {
-  return <section className="rounded-3xl border border-[#E5E0D8] bg-white p-4 shadow-xs sm:p-6"><div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div><h2 className="text-base font-display font-bold text-[#161514]">Changed-file focus</h2><p className="mt-1 max-w-2xl text-xs leading-relaxed text-[#787571]">Exact files touched by the bounded PR scan. Maintainer-associated activity is counted separately from community activity.</p></div>{analytics?.isPartial && <span className="rounded-full bg-[#FFF9EF] px-2.5 py-1 text-[10px] font-mono text-[#9E6212]">Bounded PR scan</span>}</div>{!hasPersonalToken && <div className="mt-4 rounded-xl border border-[#EAA036]/35 bg-[#FFF9EF] px-3 py-2 text-xs text-[#65615B]">Connect a GitHub PAT to scan changed-file metadata without exhausting the public request limit. <button type="button" onClick={onOpenTokenModal} className="font-semibold text-[#9E6212] hover:underline">Add PAT</button></div>}{loading && <p className="mt-4 text-xs font-mono text-[#9E6212]">{progress || 'Reading changed files…'}</p>}{error && <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">{error}</p>}{analytics && <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[760px] text-left text-xs"><thead className="bg-[#F7F5F0] text-[10px] uppercase tracking-wide text-[#787571]"><tr><th className="rounded-l-lg px-3 py-2">File</th><th className="px-3 py-2">Merged / scanned</th><th className="px-3 py-2">Contributors</th><th className="px-3 py-2">Median merge</th><th className="px-3 py-2">+ / − lines</th><th className="rounded-r-lg px-3 py-2">Evidence</th></tr></thead><tbody className="divide-y divide-[#E5E0D8]">{analytics.files.slice(0, 15).map((file) => <tr key={file.path} className="hover:bg-[#F7F5F0]"><td className="max-w-[250px] truncate px-3 py-2.5 font-mono text-[11px] text-[#161514]">{file.path}</td><td className="px-3 py-2.5 font-mono text-[#65615B]">{file.mergedPRs}/{file.totalPRs}</td><td className="px-3 py-2.5 font-mono text-[#65615B]">{file.uniqueContributors}</td><td className="px-3 py-2.5 font-mono text-[#9E6212]">{formatHours(file.medianMergeTimeHours)}</td><td className="px-3 py-2.5 font-mono text-[#65615B]">+{file.additions} / −{file.deletions}</td><td className="px-3 py-2.5 font-mono text-[10px] text-[#787571]">#{file.prNumbers.slice(0, 4).join(', #')}</td></tr>)}</tbody></table>{!analytics.files.length && <p className="py-5 text-xs text-[#787571]">No changed-file metadata was returned for the scanned pull requests.</p>}</div>}</section>;
+function ChangedFilesSection({ analytics, loading, progress, error, hasPersonalToken, onOpenTokenModal, onRetry }: { analytics: DeepFileAnalytics | null; loading: boolean; progress: string; error: string | null; hasPersonalToken: boolean; onOpenTokenModal: () => void; onRetry: () => void }) {
+  return <section className="rounded-3xl border border-[#E5E0D8] bg-white p-4 shadow-xs sm:p-6"><div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div><h2 className="text-base font-display font-bold text-[#161514]">Changed-file focus</h2><p className="mt-1 max-w-2xl text-xs leading-relaxed text-[#787571]">Exact files touched by the bounded PR scan. Maintainer-associated activity is counted separately from community activity.</p></div>{analytics?.isPartial && <span className="rounded-full bg-[#FFF9EF] px-2.5 py-1 text-[10px] font-mono text-[#9E6212]">Partial scan · {analytics.failedPRs} PRs failed</span>}</div>{!hasPersonalToken && <div className="mt-4 rounded-xl border border-[#EAA036]/35 bg-[#FFF9EF] px-3 py-2 text-xs text-[#65615B]">Connect a GitHub PAT to scan changed-file metadata without exhausting the public request limit. <button type="button" onClick={onOpenTokenModal} className="font-semibold text-[#9E6212] hover:underline">Add PAT</button></div>}{loading && <p className="mt-4 text-xs font-mono text-[#9E6212]">{progress || 'Reading changed files…'}</p>}{error && <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900" role="alert">{error} <button type="button" onClick={onRetry} className="ml-2 font-semibold underline">Retry</button></p>}{analytics && <><p className="mt-3 text-[10px] text-[#787571]">Analyzed {analytics.analyzedMergedPRs} of {analytics.availableMergedPRs} merged PRs{analytics.failedPRs ? ` · ${analytics.failedPRs} requests failed` : ''}.</p><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[760px] text-left text-xs"><thead className="bg-[#F7F5F0] text-[10px] uppercase tracking-wide text-[#787571]"><tr><th className="rounded-l-lg px-3 py-2">File</th><th className="px-3 py-2">Merged / scanned</th><th className="px-3 py-2">Contributors</th><th className="px-3 py-2">Median merge</th><th className="px-3 py-2">+ / − lines</th><th className="rounded-r-lg px-3 py-2">Evidence</th></tr></thead><tbody className="divide-y divide-[#E5E0D8]">{analytics.files.slice(0, 15).map((file) => <tr key={file.path} className="hover:bg-[#F7F5F0]"><td className="max-w-[250px] truncate px-3 py-2.5 font-mono text-[11px] text-[#161514]">{file.path}</td><td className="px-3 py-2.5 font-mono text-[#65615B]">{file.mergedPRs}/{file.totalPRs}</td><td className="px-3 py-2.5 font-mono text-[#65615B]">{file.uniqueContributors}</td><td className="px-3 py-2.5 font-mono text-[#9E6212]">{formatHours(file.medianMergeTimeHours)}</td><td className="px-3 py-2.5 font-mono text-[#65615B]">+{file.additions} / −{file.deletions}</td><td className="px-3 py-2.5 font-mono text-[10px] text-[#787571]">#{file.prNumbers.slice(0, 4).join(', #')}</td></tr>)}</tbody></table>{!analytics.files.length && <p className="py-5 text-xs text-[#787571]">No changed-file metadata was returned for the scanned pull requests.</p>}</div></>}</section>;
 }
 
 function TopicOutcomeMatrix({ topics, limit, scopeLabel }: { topics: ReturnType<typeof buildDeepAnalyticsSummary>['topicOutcomeMatrix']; limit: number; scopeLabel: string }) {
